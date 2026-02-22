@@ -1,0 +1,229 @@
+.topbar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--topbar-h);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+}
+
+/* Logo */
+.topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px #6366f155;
+}
+
+.logo-text {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -.3px;
+}
+
+.logo-accent {
+    color: var(--accent);
+}
+
+/* Prompt */
+.topbar-prompt {
+    flex: 1;
+    max-width: 560px;
+    position: relative;
+}
+
+.prompt-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 46px 10px 38px;
+    color: var(--text-pri);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border var(--transition), box-shadow var(--transition);
+}
+
+.prompt-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.prompt-input::placeholder {
+    color: var(--text-dim);
+}
+
+.prompt-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    pointer-events: none;
+}
+
+.prompt-hint {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: var(--bg-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    pointer-events: none;
+}
+
+/* Actions */
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Model selector */
+.model-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 10px;
+    height: 34px;
+    transition: border var(--transition);
+}
+
+.model-select-wrap:hover {
+    border-color: var(--accent);
+}
+
+.model-select {
+    background: transparent;
+    border: none;
+    color: var(--text-pri);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    padding-right: 14px;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.model-select option {
+    background: var(--bg-raised);
+}
+
+.model-chevron {
+    position: absolute;
+    right: 8px;
+    color: var(--text-dim);
+    pointer-events: none;
+}
+
+.ollama-status {
+    display: flex;
+    align-items: center;
+}
+
+.ollama-status.up {
+    color: var(--green);
+}
+
+.ollama-status.down {
+    color: var(--text-dim);
+}
+
+/* Avatar */
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    transition: border var(--transition);
+}
+
+.avatar:hover {
+    border-color: var(--accent);
+}
+
+/* Preview button */
+.btn-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+    white-space: nowrap;
+}
+
+.btn-preview:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.7);
+}
+
+.btn-preview:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Loading state for Generate / Run buttons */
+.btn-loading {
+    opacity: 0.75;
+    cursor: not-allowed;
+    animation: btn-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+
+    0%,
+    100% {
+        opacity: 0.75;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.btn:disabled {
+    pointer-events: none;
+}

@@ -1,0 +1,118 @@
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design Tokens ── */
+:root {
+  --bg-base:      #0d0f14;
+  --bg-surface:   #13161d;
+  --bg-raised:    #1a1d27;
+  --bg-hover:     #1f2230;
+  --border:       #252836;
+  --border-dim:   #1c1f2e;
+  --text-pri:     #e8eaf0;
+  --text-sec:     #7e849a;
+  --text-dim:     #4a4f66;
+  --accent:       #6366f1;
+  --accent-dim:   #6366f120;
+  --accent-glow:  #6366f140;
+  --green:        #22c55e;
+  --yellow:       #eab308;
+  --red:          #ef4444;
+  --blue:         #3b82f6;
+  --radius:       12px;
+  --radius-sm:    8px;
+  --topbar-h:     62px;
+  --sidebar-w:    224px;
+  --sidebar-w-sm: 52px;
+  --right-w:      280px;
+  --bottom-h:     178px;
+  --transition:   0.18s ease;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-base);
+  color: var(--text-pri);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12.5px; font-weight: 500;
+  border: 1px solid transparent; cursor: pointer;
+  transition: all var(--transition); white-space: nowrap; outline: none;
+}
+.btn-primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+.btn-primary:hover {
+  background: #5254cc;
+  box-shadow: 0 0 22px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.btn-secondary {
+  background: var(--bg-raised); color: var(--text-pri); border-color: var(--border);
+}
+.btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent); color: var(--accent); }
+.btn-run {
+  background: #22c55e18; color: var(--green); border-color: #22c55e40;
+}
+.btn-run:hover { background: #22c55e28; box-shadow: 0 0 12px #22c55e30; }
+
+/* ── Icon button ── */
+.icon-btn {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-sec);
+  cursor: pointer; transition: all var(--transition); outline: none;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Form elements ── */
+.form-label {
+  font-size: 10.5px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .6px;
+}
+.form-select, .form-input, .form-textarea {
+  background: var(--bg-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-pri);
+  font-family: inherit; font-size: 12.5px; padding: 8px 10px;
+  outline: none; transition: border var(--transition); width: 100%;
+}
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  border-color: var(--accent);
+}
+.form-select { cursor: pointer; }
+.form-textarea { resize: none; line-height: 1.6; }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border-dim); margin: 4px 0; }
+
+/* ── Animations ── */
+@keyframes pulse-green {
+  0%,100% { box-shadow: 0 0 0 3px #22c55e20; }
+  50%      { box-shadow: 0 0 0 6px #22c55e40; }
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .3; }
+}
+@keyframes dash {
+  to { stroke-dashoffset: -200; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

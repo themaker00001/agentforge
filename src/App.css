@@ -1,0 +1,16 @@
+.app-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    padding-top: var(--topbar-h);
+}
+
+.app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    /* leave space for the debug console at bottom */
+    padding-bottom: 38px;
+    /* collapsed console height */
+}

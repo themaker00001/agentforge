@@ -1,0 +1,177 @@
+/* ── Flow nodes ── */
+.flow-node {
+    position: relative;
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    min-width: 168px;
+    box-shadow: 0 4px 24px #00000060;
+    cursor: pointer;
+    transition: border var(--transition), box-shadow var(--transition), transform var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeInUp .2s ease;
+}
+
+.flow-node:hover {
+    border-color: var(--node-color, var(--accent));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent),
+        0 8px 32px #00000080;
+    transform: translateY(-2px);
+}
+
+.flow-node.selected {
+    border-color: var(--node-color, var(--accent));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent);
+}
+
+.flow-node.running {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px #22c55e30;
+    animation: pulse-green 1.5s infinite;
+}
+
+.fn-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fn-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--node-color, var(--accent)) 15%, transparent);
+}
+
+.fn-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.fn-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-pri);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fn-type {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 1px;
+}
+
+.fn-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fn-status-idle {
+    background: var(--text-dim);
+}
+
+.fn-status-ok {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+}
+
+.fn-status-running {
+    background: var(--yellow);
+    box-shadow: 0 0 6px var(--yellow);
+    animation: blink 1s infinite;
+}
+
+.fn-status-error {
+    background: var(--red);
+    box-shadow: 0 0 6px var(--red);
+}
+
+.fn-delete {
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity var(--transition), background var(--transition), color var(--transition);
+}
+
+.flow-node:hover .fn-delete {
+    opacity: 1;
+}
+
+.fn-delete:hover {
+    background: #ef444420;
+    color: #ef4444;
+}
+
+.fn-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.fn-tag {
+    font-size: 9.5px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--node-color, var(--accent)) 18%, transparent);
+    color: var(--node-color, var(--accent));
+}
+
+.fn-model {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: 'SF Mono', monospace;
+    background: var(--bg-raised);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-dim);
+}
+
+/* ── React Flow handles ── */
+.fn-handle {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    border: 2px solid var(--border) !important;
+    background: var(--bg-base) !important;
+    transition: all var(--transition);
+}
+
+.fn-handle:hover,
+.fn-handle-in:hover,
+.fn-handle-out:hover {
+    border-color: var(--accent) !important;
+    background: var(--accent) !important;
+    box-shadow: 0 0 6px var(--accent) !important;
+}
+
+/* Override React Flow default handle positioning */
+.react-flow__handle-left {
+    left: -6px !important;
+}
+
+.react-flow__handle-right {
+    right: -6px !important;
+}

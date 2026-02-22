@@ -1,0 +1,129 @@
+.sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width var(--transition);
+    z-index: 10;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-w-sm);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 10px 8px 14px;
+    border-bottom: 1px solid var(--border-dim);
+    min-height: 42px;
+    flex-shrink: 0;
+}
+
+.sidebar-heading {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    white-space: nowrap;
+}
+
+.sidebar-toggle {
+    flex-shrink: 0;
+}
+
+.sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 6px 12px;
+}
+
+.sidebar-section {
+    padding-top: 6px;
+}
+
+.sidebar-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding: 4px 8px 5px;
+    white-space: nowrap;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: var(--radius-sm);
+    cursor: grab;
+    color: var(--text-sec);
+    transition: all var(--transition);
+    user-select: none;
+}
+
+.sidebar-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-pri);
+}
+
+.sidebar-item:active {
+    cursor: grabbing;
+}
+
+.si-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.si-label {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.si-badge {
+    margin-left: auto;
+    font-size: 9px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* Icon colors per type */
+.si-agent .si-icon {
+    background: #6366f115;
+}
+
+.si-tool .si-icon {
+    background: #3b82f615;
+}
+
+.si-knowledge .si-icon {
+    background: #f59e0b15;
+}
+
+.si-input .si-icon {
+    background: #22c55e15;
+}
+
+.si-output .si-icon {
+    background: #ec489915;
+}
