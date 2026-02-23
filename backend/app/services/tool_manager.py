@@ -11,6 +11,7 @@ import os
 import re
 from pathlib import Path
 from urllib.parse import quote_plus
+from ddgs import DDGS
 
 SANDBOX_DIR = Path("/tmp/agentforge")
 SANDBOX_DIR.mkdir(exist_ok=True)
@@ -24,20 +25,24 @@ async def _web_search(params: dict) -> str:
         return "No query provided."
     # Sanitize: collapse whitespace/newlines, limit to 200 chars
     query = re.sub(r'\s+', ' ', query)[:200]
-    url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        try:
-            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
-            # Extract plain text snippets from HTML
-            text = resp.text
-            snippets = re.findall(r'class="result__snippet"[^>]*>([^<]+)', text)
-            titles   = re.findall(r'class="result__a"[^>]*>([^<]+)', text)
-            results  = []
-            for t, s in zip(titles[:5], snippets[:5]):
-                results.append(f"• {t.strip()}: {s.strip()}")
-            return "\n".join(results) if results else "No results found."
-        except Exception as e:
-            return f"Search failed: {e}"
+    try:
+        # Run the blocking DDGS call in a thread pool to stay async-safe
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            lambda: list(DDGS().text(query, max_results=5))
+        )
+        if not results:
+            return "No results found."
+        lines = []
+        for r in results:
+            title = r.get("title", "")
+            href  = r.get("href", "")
+            body  = r.get("body", "")
+            lines.append(f"• {title}\n  {href}\n  {body}")
+        return "\n\n".join(lines)
+    except Exception as e:
+        return f"Search failed: {e}"
 
 
 async def _http_request(params: dict) -> str:

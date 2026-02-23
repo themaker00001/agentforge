@@ -14,6 +14,8 @@ from app.models.schema import FlowGraph, NodeType, LogEvent, LogType
 from app.services import agent as agent_svc
 from app.services import tool_manager as tool_svc
 from app.services import knowledge as know_svc
+from app.services import shell_executor as shell_svc
+from app.services import file_agent as fs_svc
 from app.llm.registry import get_llm
 
 
@@ -155,10 +157,17 @@ async def execute(
             # ── Agent node ──────────────────────────────────────────────────
             elif ntype == NodeType.agent:
                 yield _log(LogType.info, f"  Calling LLM ({node.data.model or model})…", nid)
+                # If predecessor produced web search results, surface them clearly
+                enriched_context = context
+                if context and context != user_input and len(context) > 20:
+                    enriched_context = (
+                        f"[Search/Tool Results]:\n{context}\n\n"
+                        f"Use the above results to answer the user's question."
+                    )
                 result = await agent_svc.run_agent(
                     node=node,
                     user_input=user_input,      # always the original question
-                    context=context,            # predecessor outputs as context
+                    context=enriched_context,   # predecessor outputs as context
                     node_outputs=node_outputs,
                     session_id=session_id,
                     model_override=model if not node.data.model else None,
@@ -184,10 +193,14 @@ async def execute(
             elif ntype == NodeType.knowledge:
                 yield _log(LogType.info, "  Retrieving knowledge context…", nid)
                 # Search knowledge base using the original user question
-                result = (
-                    know_svc.context_for(user_input, top_k=3)
-                    or "No relevant knowledge found."
-                )
+                kb_result = know_svc.context_for(user_input, top_k=3)
+                if kb_result:
+                    result = kb_result
+                else:
+                    # No KB content — pass through what came from predecessors
+                    # so useful tool output isn't lost
+                    result = context or "No relevant knowledge found."
+                    yield _log(LogType.info, "  No KB docs loaded — passing through upstream context.", nid)
 
             # ── Output node — synthesize via LLM ───────────────────────────
             elif ntype == NodeType.output:
@@ -199,6 +212,33 @@ async def execute(
                     model=node.data.model or model,
                     session_id=session_id,
                 )
+
+            # ── Shell executor node ─────────────────────────────────────────
+            elif ntype == NodeType.shell_exec:
+                lang = node.data.language or "bash"
+                yield _log(LogType.run, f"  Running {lang} command…", nid)
+                cmd = node.data.command or context  # fall back to upstream output
+                output = await shell_svc.run_shell(
+                    command=cmd,
+                    working_dir=node.data.workingDir,
+                    timeout=node.data.timeout or 30,
+                    language=lang,
+                )
+                result = output
+                yield _log(LogType.ok, f"  Shell output: {output[:200]}", nid)
+
+            # ── File system node ────────────────────────────────────────────
+            elif ntype == NodeType.file_system:
+                op = node.data.fsOperation or "read"
+                yield _log(LogType.run, f"  File operation: {op}…", nid)
+                output = await fs_svc.run_fs_operation(
+                    operation=op,
+                    path=node.data.fsPath,
+                    content=node.data.fsContent or context,
+                    pattern=node.data.fsPattern,
+                )
+                result = output
+                yield _log(LogType.ok, f"  FS result: {output[:200]}", nid)
 
             else:
                 result = context

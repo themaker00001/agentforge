@@ -123,3 +123,51 @@ export async function executeTool(tool, params = {}) {
         return { error: err.message }
     }
 }
+
+// ── Background Tasks ──────────────────────────────────────────────────────────
+
+/**
+ * Submit a flow for background execution.
+ * @returns { task_id: string }
+ */
+export async function submitBackgroundTask(flow, userInput = '') {
+    const res = await fetch(`${BASE}/agent-tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flow, userInput }),
+    })
+    if (!res.ok) throw new Error(`Submit task failed: HTTP ${res.status}`)
+    return await res.json()
+}
+
+/**
+ * Poll the status and result of a background task.
+ * @returns BackgroundTask { task_id, status, result, created_at, ... }
+ */
+export async function getTaskStatus(taskId) {
+    const res = await fetch(`${BASE}/agent-tasks/${taskId}`)
+    if (!res.ok) throw new Error(`Get task failed: HTTP ${res.status}`)
+    return await res.json()
+}
+
+/**
+ * List all background tasks.
+ * @returns BackgroundTask[]
+ */
+export async function listTasks() {
+    try {
+        const res = await fetch(`${BASE}/agent-tasks`)
+        if (!res.ok) return []
+        return await res.json()
+    } catch {
+        return []
+    }
+}
+
+/**
+ * Delete/cancel a background task.
+ */
+export async function deleteTask(taskId) {
+    const res = await fetch(`${BASE}/agent-tasks/${taskId}`, { method: 'DELETE' })
+    return res.ok
+}

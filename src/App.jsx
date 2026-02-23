@@ -6,7 +6,7 @@ import FlowCanvas from './components/FlowCanvas'
 import ConfigPanel from './components/ConfigPanel'
 import DebugConsole from './components/DebugConsole'
 import ChatPreview from './components/ChatPreview'
-import { generateFlow, executeFlow } from './services/api'
+import { generateFlow, executeFlow, submitBackgroundTask } from './services/api'
 import './App.css'
 
 /* ── Edge helper ─────────────────────────────────────────────────────────── */
@@ -21,7 +21,10 @@ function makeEdge(source, target) {
 
 /* ── Convert FlowGraph from backend → React Flow nodes/edges ─────────────── */
 function convertGraph(flow) {
-    const ICONS = { input: '💬', agent: '🤖', tool: '🔍', knowledge: '📚', output: '📤' }
+    const ICONS = {
+        input: '💬', agent: '🤖', tool: '🔍', knowledge: '📚', output: '📤',
+        shell_exec: '💻', file_system: '📁',
+    }
     const nodes = flow.nodes.map(n => ({
         id: n.id,
         type: 'agentNode',
@@ -77,6 +80,16 @@ export default function App() {
                 memory: n.data.memory ?? true,
                 toolsEnabled: n.data.toolsEnabled ?? true,
                 streaming: n.data.streaming ?? false,
+                // Shell executor fields
+                command: n.data.command || null,
+                workingDir: n.data.workingDir || null,
+                timeout: n.data.timeout ?? 30,
+                language: n.data.language || 'bash',
+                // File system fields
+                fsOperation: n.data.fsOperation || null,
+                fsPath: n.data.fsPath || null,
+                fsContent: n.data.fsContent || null,
+                fsPattern: n.data.fsPattern || null,
             },
         })),
         edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
@@ -146,6 +159,20 @@ export default function App() {
         }
     }, [isRunning, selectedModel, setNodes, log, buildFlowPayload])
 
+    /* ── Run in Background ───────────────────────────────────────────────────── */
+    const handleRunBackground = useCallback(async () => {
+        if (latestNodes.current.length === 0) {
+            log('warn', 'No flow to run — generate one first')
+            return
+        }
+        try {
+            const { task_id } = await submitBackgroundTask(buildFlowPayload(), '')
+            log('ok', `Background task queued — ID: ${task_id}`)
+        } catch (err) {
+            log('err', `Background task failed: ${err.message}`)
+        }
+    }, [buildFlowPayload, log])
+
     /* ── Node click / update ─────────────────────────────────────────────────── */
     const handleNodeClick = useCallback((node) => setSelectedNode(node), [])
 
@@ -165,6 +192,7 @@ export default function App() {
             <TopBar
                 onGenerate={handleGenerate}
                 onRun={handleRun}
+                onRunBackground={handleRunBackground}
                 onPreview={() => setChatOpen(true)}
                 selectedModel={selectedModel}
                 onModelChange={setSelectedModel}

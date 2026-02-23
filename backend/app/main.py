@@ -11,11 +11,14 @@ load_dotenv()
 
 # Import routers
 from app.routes import flow, execute, models, knowledge, tools, chat
+from app.routes import agent_tasks
+from app.services import background_agent as bg_svc
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup/shutdown logic."""
+    import asyncio
     import httpx
     print("🚀 AgentForge backend starting…")
     try:
@@ -27,7 +30,18 @@ async def lifespan(app: FastAPI):
                 print(f"✅ Ollama connected — models: {', '.join(model_names) or 'none installed'}")
     except Exception:
         print("⚠️  Ollama not running — start with: ollama serve")
+
+    # Start persistent background agent worker
+    worker_task = asyncio.create_task(bg_svc.worker_loop())
+
     yield
+
+    # Cancel worker on shutdown
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
     print("👋 AgentForge backend shutting down.")
 
 
@@ -48,12 +62,13 @@ app.add_middleware(
 )
 
 # Mount routers
-app.include_router(flow.router,      tags=["Flow"])
-app.include_router(execute.router,   tags=["Execute"])
-app.include_router(chat.router,      tags=["Chat"])
-app.include_router(models.router,    tags=["Models"])
-app.include_router(knowledge.router, tags=["Knowledge"])
-app.include_router(tools.router,     tags=["Tools"])
+app.include_router(flow.router,         tags=["Flow"])
+app.include_router(execute.router,      tags=["Execute"])
+app.include_router(chat.router,         tags=["Chat"])
+app.include_router(models.router,       tags=["Models"])
+app.include_router(knowledge.router,    tags=["Knowledge"])
+app.include_router(tools.router,        tags=["Tools"])
+app.include_router(agent_tasks.router)  # tags set in router definition
 
 
 @app.get("/")

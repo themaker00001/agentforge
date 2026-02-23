@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare } from 'lucide-react'
-import { getModels, checkBackend } from '../services/api'
+import { useState, useEffect, useCallback } from 'react'
+import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare, Clock, Trash2, X } from 'lucide-react'
+import { getModels, checkBackend, listTasks, deleteTask } from '../services/api'
 import './TopBar.css'
 
 const FALLBACK_MODELS = [
@@ -9,10 +9,64 @@ const FALLBACK_MODELS = [
     { value: 'gemini:gemini-3.0-flash', label: '🔷 Gemini 3.0 Flash' },
 ]
 
-export default function TopBar({ onGenerate, onRun, onPreview, selectedModel, onModelChange, isGenerating, isRunning, hasFlow }) {
+const STATUS_COLORS = {
+    pending: '#f59e0b',
+    running: '#3b82f6',
+    done:    '#22c55e',
+    error:   '#ef4444',
+}
+
+function TaskPanel({ tasks, onClose, onRefresh, onDelete }) {
+    return (
+        <div className="task-panel">
+            <div className="task-panel-header">
+                <span>Background Tasks</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="icon-btn" onClick={onRefresh} title="Refresh">↻</button>
+                    <button className="icon-btn" onClick={onClose}><X size={13} /></button>
+                </div>
+            </div>
+            <div className="task-panel-body">
+                {tasks.length === 0 && (
+                    <div className="task-empty">No background tasks yet.</div>
+                )}
+                {tasks.map(task => (
+                    <div key={task.task_id} className="task-item">
+                        <div className="task-item-header">
+                            <span
+                                className="task-status-badge"
+                                style={{ background: STATUS_COLORS[task.status] || '#888' }}
+                            >
+                                {task.status}
+                            </span>
+                            <span className="task-id" title={task.task_id}>
+                                {task.task_id.slice(0, 8)}…
+                            </span>
+                            <button
+                                className="icon-btn"
+                                onClick={() => onDelete(task.task_id)}
+                                title="Remove task"
+                            >
+                                <Trash2 size={11} />
+                            </button>
+                        </div>
+                        {task.result && (
+                            <pre className="task-result">{task.result.slice(0, 300)}{task.result.length > 300 ? '\n…' : ''}</pre>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export default function TopBar({ onGenerate, onRun, onRunBackground, onPreview, selectedModel, onModelChange, isGenerating, isRunning, hasFlow }) {
     const [prompt, setPrompt] = useState('')
     const [models, setModels] = useState(FALLBACK_MODELS)
     const [backendUp, setBackendUp] = useState(false)
+    const [showTasks, setShowTasks] = useState(false)
+    const [tasks, setTasks] = useState([])
+    const [bgSubmitting, setBgSubmitting] = useState(false)
 
     // Re-fetch models whenever backend status may have changed
     useEffect(() => {
@@ -26,16 +80,48 @@ export default function TopBar({ onGenerate, onRun, onPreview, selectedModel, on
                 ...result.ollama.map(n => ({ value: `ollama:${n}`, label: `🦙 ${n}` })),
                 ...result.openai.map(n => ({ value: `openai:${n}`, label: `⚡ ${n}` })),
                 ...result.gemini.map(n => ({ value: `gemini:${n}`, label: `🔷 ${n}` })),
+                ...(result.lmstudio || []).map(n => ({ value: `lmstudio:${n}`, label: `🖥️ ${n}` })),
             ]
             if (allModels.length) {
                 setModels(allModels)
-                // Auto-select first Ollama model if current selection isn't in list
                 const found = allModels.find(m => m.value === selectedModel)
                 if (!found) onModelChange(allModels[0].value)
             }
         }
         loadModels()
     }, []) // eslint-disable-line
+
+    const refreshTasks = useCallback(async () => {
+        const data = await listTasks()
+        setTasks(data)
+    }, [])
+
+    // Auto-refresh tasks while panel is open
+    useEffect(() => {
+        if (!showTasks) return
+        refreshTasks()
+        const id = setInterval(refreshTasks, 3000)
+        return () => clearInterval(id)
+    }, [showTasks, refreshTasks])
+
+    const handleRunBackground = async () => {
+        if (!hasFlow) return
+        setBgSubmitting(true)
+        try {
+            await onRunBackground?.()
+            setShowTasks(true)
+            await refreshTasks()
+        } catch (err) {
+            console.error('[AgentForge] Background task submit failed:', err)
+        } finally {
+            setBgSubmitting(false)
+        }
+    }
+
+    const handleDeleteTask = async (taskId) => {
+        await deleteTask(taskId)
+        await refreshTasks()
+    }
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter' && prompt.trim()) onGenerate(prompt)
@@ -89,7 +175,40 @@ export default function TopBar({ onGenerate, onRun, onPreview, selectedModel, on
                 </button>
 
                 <button
-                    className={`btn btn-preview`}
+                    className={`btn btn-bg ${bgSubmitting ? 'btn-loading' : ''}`}
+                    onClick={handleRunBackground}
+                    disabled={bgSubmitting || !hasFlow}
+                    title="Run this flow in the background"
+                >
+                    <Clock size={12} />
+                    {bgSubmitting ? 'Queuing…' : 'Run in Background'}
+                </button>
+
+                {/* Background tasks toggle */}
+                <div style={{ position: 'relative' }}>
+                    <button
+                        className={`icon-btn${showTasks ? ' active' : ''}`}
+                        onClick={() => setShowTasks(v => !v)}
+                        title="Background tasks"
+                        style={{ position: 'relative' }}
+                    >
+                        <Clock size={15} />
+                        {tasks.some(t => t.status === 'running') && (
+                            <span className="task-running-dot" />
+                        )}
+                    </button>
+                    {showTasks && (
+                        <TaskPanel
+                            tasks={tasks}
+                            onClose={() => setShowTasks(false)}
+                            onRefresh={refreshTasks}
+                            onDelete={handleDeleteTask}
+                        />
+                    )}
+                </div>
+
+                <button
+                    className="btn btn-preview"
                     onClick={onPreview}
                     disabled={!hasFlow}
                     title="Chat with this agent"

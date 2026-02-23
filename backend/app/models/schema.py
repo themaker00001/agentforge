@@ -6,11 +6,13 @@ from pydantic import BaseModel, Field
 # ── Node / Edge ──────────────────────────────────────────────────────────────
 
 class NodeType(str, Enum):
-    input     = "input"
-    agent     = "agent"
-    tool      = "tool"
-    knowledge = "knowledge"
-    output    = "output"
+    input       = "input"
+    agent       = "agent"
+    tool        = "tool"
+    knowledge   = "knowledge"
+    output      = "output"
+    shell_exec  = "shell_exec"   # Run shell commands / scripts locally
+    file_system = "file_system"  # Read, write, list, search local files
 
 
 class NodeData(BaseModel):
@@ -26,6 +28,16 @@ class NodeData(BaseModel):
     streaming:    bool       = False
     toolName:     Optional[str] = None   # for tool nodes
     params:       Optional[dict[str, Any]] = None
+    # Shell executor fields
+    command:      Optional[str] = None   # shell command or script body
+    workingDir:   Optional[str] = None   # working directory (relative to sandbox)
+    timeout:      Optional[int] = 30     # execution timeout in seconds
+    language:     Optional[str] = "bash" # "bash" | "python"
+    # File system fields
+    fsOperation:  Optional[str] = None   # "read" | "write" | "list" | "search"
+    fsPath:       Optional[str] = None   # target path (relative to sandbox)
+    fsContent:    Optional[str] = None   # content for write operations
+    fsPattern:    Optional[str] = None   # glob/regex for search/list
 
 
 class NodePosition(BaseModel):
@@ -66,9 +78,28 @@ class ExecuteRequest(BaseModel):
 
 
 class ModelsResponse(BaseModel):
-    ollama: list[str]
-    openai: list[str]
-    gemini: list[str]
+    ollama:   list[str]
+    openai:   list[str]
+    gemini:   list[str]
+    lmstudio: list[str] = []
+
+
+# ── Background task models ────────────────────────────────────────────────────
+
+class TaskStatus(str, Enum):
+    pending = "pending"
+    running = "running"
+    done    = "done"
+    error   = "error"
+
+
+class BackgroundTask(BaseModel):
+    task_id:    str
+    status:     TaskStatus = TaskStatus.pending
+    result:     Optional[str] = None
+    created_at: str
+    flow:       FlowGraph
+    user_input: str
 
 
 class KnowledgeUploadRequest(BaseModel):

@@ -8,15 +8,44 @@ const NODE_CONFIG = {
     tool: { icon: '🔧', label: 'Tool', color: '#3b82f6' },
     knowledge: { icon: '📚', label: 'Knowledge', color: '#f59e0b' },
     output: { icon: '📤', label: 'Output', color: '#ec4899' },
+    shell_exec: { icon: '💻', label: 'Shell', color: '#a855f7' },
+    file_system: { icon: '📁', label: 'File System', color: '#f97316' },
 }
 
 function StatusDot({ status }) {
     return <div className={`fn-status-dot fn-status-${status}`} />
 }
 
+/** Returns a short badge describing what each node actually uses */
+function getNodeBadge(data) {
+    switch (data.nodeType) {
+        case 'agent':
+        case 'output':
+            // Show just the model name (e.g. "llama3:8b" from "ollama:llama3:8b")
+            return data.model ? data.model.split(':').slice(1).join(':') || data.model : 'LLM'
+        case 'tool': {
+            const toolMap = {
+                web_search: 'DuckDuckGo',
+                http_request: 'HTTP Request',
+                code_runner: 'Code Runner',
+                file_reader: 'File Reader',
+                summarize: 'Summarizer',
+            }
+            const name = data.toolName || ''
+            return toolMap[name] || (name ? name : 'Tool API')
+        }
+        case 'input': return 'Text Input'
+        case 'knowledge': return 'Vector DB'
+        case 'shell_exec': return data.language ? `Shell (${data.language})` : 'Shell'
+        case 'file_system': return `File (${data.fsOperation || 'read'})`
+        default: return ''
+    }
+}
+
 export function FlowNode({ data, selected }) {
     const cfg = NODE_CONFIG[data.nodeType] || NODE_CONFIG.agent
     const isRunning = data.status === 'running'
+    const badge = getNodeBadge(data)
 
     return (
         <div
@@ -46,7 +75,7 @@ export function FlowNode({ data, selected }) {
 
             <div className="fn-footer">
                 <span className="fn-tag">{cfg.label}</span>
-                {data.model && <span className="fn-model">{data.model}</span>}
+                {badge && <span className="fn-model">{badge}</span>}
             </div>
 
             {/* Output handle — all except pure outputs */}

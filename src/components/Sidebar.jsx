@@ -21,6 +21,13 @@ const LIBRARY = [
         ],
     },
     {
+        section: 'Local',
+        items: [
+            { type: 'shell_exec',  label: 'Shell Executor', icon: '💻', badge: 'NEW' },
+            { type: 'file_system', label: 'File System',    icon: '📁', badge: 'NEW' },
+        ],
+    },
+    {
         section: 'Knowledge',
         items: [
             { type: 'knowledge', label: 'Vector Store', icon: '📚' },
