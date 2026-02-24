@@ -23,8 +23,9 @@ const LIBRARY = [
     {
         section: 'Local',
         items: [
-            { type: 'shell_exec',  label: 'Shell Executor', icon: '💻', badge: 'NEW' },
-            { type: 'file_system', label: 'File System',    icon: '📁', badge: 'NEW' },
+            { type: 'shell_exec', label: 'Shell Executor', icon: '💻', badge: 'NEW' },
+            { type: 'file_system', label: 'File System', icon: '📁', badge: 'NEW' },
+            { type: 'powerbi', label: 'Power BI', icon: '📊', badge: 'NEW' },
         ],
     },
     {

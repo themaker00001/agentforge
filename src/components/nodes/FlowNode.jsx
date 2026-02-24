@@ -10,6 +10,7 @@ const NODE_CONFIG = {
     output: { icon: '📤', label: 'Output', color: '#ec4899' },
     shell_exec: { icon: '💻', label: 'Shell', color: '#a855f7' },
     file_system: { icon: '📁', label: 'File System', color: '#f97316' },
+    powerbi: { icon: '📊', label: 'Power BI', color: '#f59e0b' },
 }
 
 function StatusDot({ status }) {
@@ -38,6 +39,7 @@ function getNodeBadge(data) {
         case 'knowledge': return 'Vector DB'
         case 'shell_exec': return data.language ? `Shell (${data.language})` : 'Shell'
         case 'file_system': return `File (${data.fsOperation || 'read'})`
+        case 'powerbi': return data.pbiAction === 'refresh' ? 'Refresh Dataset' : 'DAX Query'
         default: return ''
     }
 }

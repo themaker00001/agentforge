@@ -13,6 +13,7 @@ class NodeType(str, Enum):
     output      = "output"
     shell_exec  = "shell_exec"   # Run shell commands / scripts locally
     file_system = "file_system"  # Read, write, list, search local files
+    powerbi     = "powerbi"      # Power BI automation
 
 
 class NodeData(BaseModel):
@@ -38,6 +39,11 @@ class NodeData(BaseModel):
     fsPath:       Optional[str] = None   # target path (relative to sandbox)
     fsContent:    Optional[str] = None   # content for write operations
     fsPattern:    Optional[str] = None   # glob/regex for search/list
+    # Power BI fields
+    pbiWorkspaceId: Optional[str] = None
+    pbiDatasetId:   Optional[str] = None
+    pbiAction:      Optional[str] = None   # "dax_query" | "refresh"
+    pbiQuery:       Optional[str] = None   # DAX query string
 
 
 class NodePosition(BaseModel):

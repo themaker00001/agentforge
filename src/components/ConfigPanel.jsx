@@ -14,14 +14,15 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
     const { data } = node
     const icons = {
         input: '💬', agent: '🤖', tool: '🔧', knowledge: '📚', output: '📤',
-        shell_exec: '💻', file_system: '📁',
+        shell_exec: '💻', file_system: '📁', powerbi: '📊',
     }
 
     const update = (key, value) => onUpdate(node.id, { ...data, [key]: value })
 
     const isShell = data.nodeType === 'shell_exec'
     const isFS = data.nodeType === 'file_system'
-    const isLocal = isShell || isFS
+    const isPowerBI = data.nodeType === 'powerbi'
+    const isLocal = isShell || isFS || isPowerBI
 
     return (
         <aside className="config-panel">
@@ -156,6 +157,60 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
                                     placeholder="e.g. *.txt or **/*.py"
                                     value={data.fsPattern || ''}
                                     onChange={e => update('fsPattern', e.target.value)}
+                                    onKeyDown={stopKeys}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ── Power BI config ── */}
+                {isPowerBI && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-pbiaction`}>Action</label>
+                            <select
+                                id={`${node.id}-pbiaction`}
+                                className="form-select"
+                                value={data.pbiAction || 'dax_query'}
+                                onChange={e => update('pbiAction', e.target.value)}
+                                onKeyDown={stopKeys}
+                            >
+                                <option value="dax_query">DAX Query</option>
+                                <option value="refresh">Refresh Dataset</option>
+                            </select>
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-pbiws`}>Workspace ID</label>
+                            <input
+                                id={`${node.id}-pbiws`}
+                                type="text" className="form-input"
+                                placeholder="..."
+                                value={data.pbiWorkspaceId || ''}
+                                onChange={e => update('pbiWorkspaceId', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-pbids`}>Dataset ID</label>
+                            <input
+                                id={`${node.id}-pbids`}
+                                type="text" className="form-input"
+                                placeholder="..."
+                                value={data.pbiDatasetId || ''}
+                                onChange={e => update('pbiDatasetId', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        {(!data.pbiAction || data.pbiAction === 'dax_query') && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-pbiquery`}>DAX Query</label>
+                                <textarea
+                                    id={`${node.id}-pbiquery`}
+                                    className="form-textarea"
+                                    rows={5}
+                                    placeholder="EVALUATE ..."
+                                    value={data.pbiQuery || ''}
+                                    onChange={e => update('pbiQuery', e.target.value)}
                                     onKeyDown={stopKeys}
                                 />
                             </div>

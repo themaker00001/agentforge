@@ -16,6 +16,7 @@ from app.services import tool_manager as tool_svc
 from app.services import knowledge as know_svc
 from app.services import shell_executor as shell_svc
 from app.services import file_agent as fs_svc
+from app.services import powerbi_agent as pbi_svc
 from app.llm.registry import get_llm
 
 
@@ -239,6 +240,18 @@ async def execute(
                 )
                 result = output
                 yield _log(LogType.ok, f"  FS result: {output[:200]}", nid)
+
+            # ── Power BI node ───────────────────────────────────────────────
+            elif ntype == NodeType.powerbi:
+                yield _log(LogType.run, "  Starting Power BI interaction…", nid)
+                async for pbi_event in pbi_svc.run_powerbi_node(node, context):
+                    if pbi_event["type"] == "result":
+                        result = pbi_event["message"]
+                    elif pbi_event["type"] == "auth_required":
+                        # We send this as 'info' but embed the auth data
+                        yield _log(LogType.info, pbi_event["message"], nid, data=pbi_event["data"])
+                    else:
+                        yield _log(pbi_event["type"], pbi_event["message"], nid)
 
             else:
                 result = context

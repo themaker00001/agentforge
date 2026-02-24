@@ -60,6 +60,7 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 - **Knowledge** — RAG retrieval from your local knowledge base
 - **Shell Executor** — run bash/Python scripts in a sandboxed `~/agentforge_workspace`
 - **File System** — read, write, search files programmatically
+- **Power BI** — Interactive login to run DAX queries or refresh datasets
 - **Output** — synthesizes a final LLM response from all upstream context
 
 ### Background Agent Tasks
@@ -85,20 +86,20 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   React Frontend                    │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │ Flow Canvas │  │Chat Preview │  │Debug Console│ │
-│  │  (XYFlow)   │  │   (SSE)     │  │   (Logs)    │ │
-│  └──────┬──────┘  └──────┬──────┘  └─────────────┘ │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │ Flow Canvas │  │Chat Preview │  │Debug Console│  │
+│  │  (XYFlow)   │  │   (SSE)     │  │   (Logs)    │  │
+│  └──────┬──────┘  └──────┬──────┘  └─────────────┘  │
 └─────────│────────────────│─────────────────────────-┘
           │  HTTP / SSE    │
 ┌─────────▼────────────────▼──────────────────────────┐
-│                  FastAPI Backend                     │
+│                  FastAPI Backend                    │
 │  ┌──────────┐  ┌─────────────┐  ┌────────────────┐  │
 │  │ Executor │  │Tool Manager │  │Background Agent│  │
 │  │(Topo Sort│  │(web_search, │  │(asyncio queue) │  │
 │  │         )│  │ code_runner…│  │                │  │
 │  └────┬─────┘  └─────────────┘  └────────────────┘  │
-│       │                                              │
+│       │                                             │
 │  ┌────▼──────────────────────────────────────────┐  │
 │  │              LLM Registry                     │  │
 │  │  Ollama │ LM Studio │ OpenAI │ Gemini         │  │

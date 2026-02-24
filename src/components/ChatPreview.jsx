@@ -84,6 +84,13 @@ export default function ChatPreview({ flow, model, sessionId = 'default', onClos
                 sessionId,
                 (logEvent) => {
                     setLogs(prev => [...prev, logEvent])
+                    if (logEvent.data?.user_code) {
+                        setMessages(prev => [...prev, {
+                            id: Date.now() + Math.random(),
+                            role: 'agent',
+                            content: `🔐 **Authentication Required**\n\nPlease visit [${logEvent.data.verification_uri}](${logEvent.data.verification_uri}) and enter the code: **\`${logEvent.data.user_code}\`**\n\nI will wait here until you complete the login.`,
+                        }])
+                    }
                 },
                 (response) => {
                     responseText = response
