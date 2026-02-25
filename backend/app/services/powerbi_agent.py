@@ -82,7 +82,10 @@ async def run_powerbi_node(node: Node, context: str):
                 return str(res.json())
             elif action == "refresh":
                 url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{dataset_id}/refreshes"
+                # Post body must be an empty {} for default refresh
                 res = requests.post(url, headers=headers, json={})
+                if res.status_code == 202:
+                    return "Dataset refresh triggered successfully (Accepted)."
                 res.raise_for_status()
                 return "Dataset refresh triggered successfully."
             else:
@@ -91,6 +94,15 @@ async def run_powerbi_node(node: Node, context: str):
         api_result = await asyncio.to_thread(do_request)
         yield {"type": "result", "message": api_result}
         
+    except requests.exceptions.HTTPError as e:
+        err_msg = str(e)
+        if e.response is not None:
+             try:
+                 err_msg = f"{e} - {e.response.json()}"
+             except ValueError:
+                 err_msg = f"{e} - {e.response.text}"
+        yield {"type": LogType.err, "message": f"Power BI HTTP error: {err_msg}"}
+        yield {"type": "result", "message": f"Error: {err_msg}"}
     except Exception as e:
-        yield {"type": LogType.err, "message": f"Power BI API error: {e}"}
+        yield {"type": LogType.err, "message": f"Power BI Unknown error: {e}"}
         yield {"type": "result", "message": f"Error: {e}"}

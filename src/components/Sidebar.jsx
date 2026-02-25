@@ -25,7 +25,7 @@ const LIBRARY = [
         items: [
             { type: 'shell_exec', label: 'Shell Executor', icon: '💻', badge: 'NEW' },
             { type: 'file_system', label: 'File System', icon: '📁', badge: 'NEW' },
-            { type: 'powerbi', label: 'Power BI', icon: '📊', badge: 'NEW' },
+            { type: 'powerbi', label: '(Experimental) Power BI', icon: '📊', badge: 'NEW' },
         ],
     },
     {

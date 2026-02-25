@@ -10,7 +10,7 @@ const NODE_CONFIG = {
     output: { icon: '📤', label: 'Output', color: '#ec4899' },
     shell_exec: { icon: '💻', label: 'Shell', color: '#a855f7' },
     file_system: { icon: '📁', label: 'File System', color: '#f97316' },
-    powerbi: { icon: '📊', label: 'Power BI', color: '#f59e0b' },
+    powerbi: { icon: '📊', label: '(Experimental) Power BI', color: '#f59e0b' },
 }
 
 function StatusDot({ status }) {
