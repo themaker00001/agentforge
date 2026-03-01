@@ -64,6 +64,15 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 6px 6px 12px;
+
+    /* Hide scrollbar for a cleaner look */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Edge */
 }
 
 /* ── Search bar ── */
