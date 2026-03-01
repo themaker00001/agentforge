@@ -1,123 +1,332 @@
+/* ── TopBar — 2-row grid layout ── */
 .topbar {
     position: fixed;
     inset: 0 0 auto 0;
     height: var(--topbar-h);
-    background: var(--bg-surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 14px;
+    background: rgba(10, 10, 15, 0.45);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    /*
+     * Grid: [logo | inputs | actions]
+     * Logo spans both rows. Inputs (describe/run) stack in column 2.
+     * Actions span both rows on the right with internal flex-wrap.
+     */
+    display: grid;
+    grid-template-columns: 150px 1fr auto;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px 12px;
+    padding: 7px 14px;
     z-index: 100;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    align-items: stretch;
 }
 
-/* Logo */
+/* subtle mid-row divider */
+.topbar::before {
+    content: '';
+    position: absolute;
+    left: 162px;
+    /* after logo column */
+    right: 14px;
+    top: 50%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Logo — spans both grid rows ── */
 .topbar-logo {
+    grid-row: 1 / 3;
+    grid-column: 1;
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 150px;
+    align-self: center;
+}
+
+.logo-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.project-name-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    font-family: inherit;
+    transition: color var(--transition);
+    text-align: left;
+    line-height: 1;
+}
+
+.project-name-btn:hover {
+    color: var(--text-primary);
+}
+
+.project-pencil {
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.project-name-btn:hover .project-pencil {
+    opacity: 1;
+}
+
+.project-name-input {
+    background: var(--bg-raised);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10.5px;
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+    width: 120px;
+    line-height: 1.4;
 }
 
 .logo-icon {
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 0 16px #6366f155;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+    animation: breathingGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes breathingGlow {
+    0% {
+        box-shadow: 0 0 14px rgba(124, 58, 237, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.1);
+    }
+
+    100% {
+        box-shadow: 0 0 28px rgba(124, 58, 237, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.3);
+    }
 }
 
 .logo-text {
     font-weight: 700;
     font-size: 15px;
-    letter-spacing: -.3px;
+    letter-spacing: -.4px;
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+    text-shadow: 0 2px 10px rgba(124, 58, 237, 0.2);
 }
 
 .logo-accent {
-    color: var(--accent);
+    /* handled by parent gradient */
 }
 
-/* Prompt */
+/* ── Describe prompt — grid row 1 ── */
+.topbar>.topbar-prompt:nth-child(2) {
+    grid-row: 1;
+    grid-column: 2;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* ── Run prompt — grid row 2 ── */
+.topbar>.topbar-prompt:nth-child(3) {
+    grid-row: 2;
+    grid-column: 2;
+    position: relative;
+    display: flex;
+    align-items: center;
+    /* inline flex: 0 0 220px is ignored in grid layout */
+}
+
+/* ── Shared prompt styles ── */
 .topbar-prompt {
-    flex: 1;
-    max-width: 560px;
     position: relative;
 }
 
 .prompt-input {
     width: 100%;
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 46px 10px 38px;
+    background: rgba(20, 20, 28, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 8px 46px 8px 36px;
     color: var(--text-pri);
     font-family: inherit;
     font-size: 13px;
     outline: none;
-    transition: border var(--transition), box-shadow var(--transition);
+    transition: all var(--transition);
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.prompt-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+/* Describe input: violet accent */
+.topbar>.topbar-prompt:nth-child(2) .prompt-input:focus {
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    background: rgba(26, 26, 36, 0.7);
+}
+
+/* Run input: green accent */
+.topbar>.topbar-prompt:nth-child(3) .prompt-input {
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.topbar>.topbar-prompt:nth-child(3) .prompt-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    background: rgba(26, 26, 36, 0.9);
 }
 
 .prompt-input::placeholder {
-    color: var(--text-dim);
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 .prompt-icon {
     position: absolute;
-    left: 12px;
+    left: 11px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-dim);
+    color: var(--text-muted);
     pointer-events: none;
+    transition: color var(--transition);
+    z-index: 1;
+}
+
+.topbar>.topbar-prompt:nth-child(2):focus-within .prompt-icon {
+    color: var(--accent-light);
+}
+
+.topbar>.topbar-prompt:nth-child(3):focus-within .prompt-icon {
+    color: var(--green);
 }
 
 .prompt-hint {
     position: absolute;
-    right: 12px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 10px;
-    color: var(--text-dim);
-    background: var(--bg-hover);
-    padding: 2px 6px;
+    font-size: 9.5px;
+    color: var(--text-muted);
+    background: var(--bg-raised);
+    padding: 2px 5px;
     border-radius: 4px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-active);
     pointer-events: none;
+    font-family: 'SF Mono', monospace;
+    letter-spacing: 0.3px;
+    z-index: 1;
 }
 
-/* Actions */
+/* ── Actions — spans both rows, splits into 2 rows internally ── */
 .topbar-actions {
+    grid-row: 1 / 3;
+    grid-column: 3;
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 5px 6px;
+    /* Fixed width so the grid column is deterministic */
+    width: 468px;
+}
+
+/*
+ * Two-row split using order + ::after flex-break trick:
+ * Row 1 (build): Templates(1) → Deploy(2) → Generate Flow(3) ···[auto]··· Model(4) → Settings(5) → Avatar(6)
+ * flex-break ::after (order 7)
+ * Row 2 (run):   Run(8) → Background(9) → Save(10) → Tasks(11) → Preview(12) → Status(13)
+ */
+.topbar-actions>.btn-templates {
+    order: 1;
+}
+
+.topbar-actions>.btn-deploy {
+    order: 2;
+}
+
+.topbar-actions>.btn-primary {
+    order: 3;
+}
+
+/* gap auto-pushed to right: */
+.topbar-actions>.model-select-wrap {
+    order: 4;
     margin-left: auto;
 }
 
-/* Model selector */
+.topbar-actions>.icon-btn {
+    order: 5;
+}
+
+/* Settings (only direct-child icon-btn) */
+.topbar-actions>.avatar {
+    order: 6;
+}
+
+/* Flex row break between row 1 and row 2 */
+.topbar-actions::after {
+    content: '';
+    flex: 0 0 100%;
+    height: 0;
+    order: 7;
+}
+
+.topbar-actions>.btn-run {
+    order: 8;
+}
+
+.topbar-actions>.btn-bg {
+    order: 9;
+}
+
+.topbar-actions>div:nth-child(6) {
+    order: 10;
+}
+
+/* Save icon container */
+.topbar-actions>div:nth-child(7) {
+    order: 11;
+}
+
+/* Tasks icon container */
+.topbar-actions>.btn-preview {
+    order: 12;
+}
+
+.topbar-actions>.topbar-status {
+    order: 13;
+}
+
+/* ── Model selector ── */
 .model-select-wrap {
     position: relative;
     display: flex;
     align-items: center;
     gap: 6px;
     background: var(--bg-raised);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-active);
     border-radius: var(--radius-sm);
     padding: 0 10px;
-    height: 34px;
-    transition: border var(--transition);
+    height: 30px;
+    transition: border var(--transition), box-shadow var(--transition);
 }
 
 .model-select-wrap:hover {
     border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .model-select {
@@ -125,26 +334,34 @@
     border: none;
     color: var(--text-pri);
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 500;
     outline: none;
     cursor: pointer;
-    padding-right: 14px;
+    padding-right: 16px;
     -webkit-appearance: none;
     appearance: none;
+    max-width: 130px;
 }
 
 .model-select option {
     background: var(--bg-raised);
+    color: var(--text-pri);
 }
 
 .model-chevron {
     position: absolute;
-    right: 8px;
-    color: var(--text-dim);
+    right: 6px;
+    color: var(--text-muted);
     pointer-events: none;
+    transition: color var(--transition);
 }
 
+.model-select-wrap:hover .model-chevron {
+    color: var(--accent-light);
+}
+
+/* Backend status */
 .ollama-status {
     display: flex;
     align-items: center;
@@ -155,59 +372,83 @@
 }
 
 .ollama-status.down {
-    color: var(--text-dim);
+    color: var(--text-muted);
 }
 
-/* Avatar */
+/* ── Avatar ── */
 .avatar {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 700;
+    font-size: 11px;
     cursor: pointer;
-    border: 2px solid var(--border);
-    transition: border var(--transition);
+    border: 2px solid var(--border-active);
+    transition: border var(--transition), box-shadow var(--transition), transform var(--transition);
+    color: #fff;
+    flex-shrink: 0;
 }
 
 .avatar:hover {
     border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+    transform: scale(1.07);
 }
 
-/* Preview button */
+/* ── Shared button sizes for the topbar rows ── */
+.topbar-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    height: 30px;
+}
+
+.topbar-actions .icon-btn {
+    width: 30px;
+    height: 30px;
+}
+
+/* ── Preview button ── */
 .btn-preview {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
+    gap: 5px;
+    padding: 6px 12px;
+    height: 30px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.1);
     color: #10b981;
-    font-size: 12.5px;
+    font-family: inherit;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background var(--transition), border-color var(--transition);
+    transition: all var(--transition);
     white-space: nowrap;
 }
 
 .btn-preview:hover:not(:disabled) {
-    background: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.7);
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-preview:active {
+    transform: scale(0.97);
 }
 
 .btn-preview:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     cursor: not-allowed;
 }
 
-/* Loading state for Generate / Run buttons */
+/* ── Loading state ── */
 .btn-loading {
-    opacity: 0.75;
+    opacity: 0.7;
     cursor: not-allowed;
     animation: btn-pulse 1.2s ease-in-out infinite;
 }
@@ -220,7 +461,7 @@
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 0.45;
     }
 }
 
@@ -228,68 +469,89 @@
     pointer-events: none;
 }
 
-/* Run in Background button */
+/* ── Background task button ── */
 .btn-bg {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
+    gap: 5px;
+    padding: 6px 12px;
+    height: 30px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(168, 85, 247, 0.4);
-    background: rgba(168, 85, 247, 0.12);
-    color: #a855f7;
-    font-size: 12.5px;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    background: rgba(124, 58, 237, 0.1);
+    color: #a78bfa;
+    font-family: inherit;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background var(--transition), border-color var(--transition);
+    transition: all var(--transition);
     white-space: nowrap;
 }
 
 .btn-bg:hover:not(:disabled) {
-    background: rgba(168, 85, 247, 0.22);
-    border-color: rgba(168, 85, 247, 0.7);
+    background: rgba(124, 58, 237, 0.2);
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-bg:active {
+    transform: scale(0.97);
 }
 
 .btn-bg:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     cursor: not-allowed;
 }
 
-/* Active icon button state */
+/* ── Active icon button ── */
 .icon-btn.active {
-    color: var(--accent);
-    background: var(--accent-glow);
+    color: var(--accent-light);
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
 }
 
-/* Running dot on the tasks button */
+/* ── Running dot on tasks button ── */
 .task-running-dot {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 7px;
-    height: 7px;
+    top: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: #3b82f6;
+    background: var(--blue);
+    box-shadow: 0 0 6px var(--blue);
     animation: task-dot-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes task-dot-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.8);
+    }
 }
 
-/* Background task panel */
+/* ── Dropdown panels (task panel, save/load) ── */
 .task-panel {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     width: 340px;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-active);
     border-radius: var(--radius);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.1);
     z-index: 200;
     overflow: hidden;
+    animation: slideUpFade 0.18s ease;
 }
 
 .task-panel-header {
@@ -301,6 +563,7 @@
     font-size: 12.5px;
     font-weight: 600;
     color: var(--text-pri);
+    background: var(--bg-raised);
 }
 
 .task-panel-body {
@@ -314,16 +577,22 @@
 
 .task-empty {
     text-align: center;
-    color: var(--text-dim);
+    color: var(--text-muted);
     font-size: 12px;
-    padding: 16px 0;
+    padding: 20px 0;
+    font-style: italic;
 }
 
 .task-item {
     background: var(--bg-raised);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-active);
     border-radius: var(--radius-sm);
     padding: 8px 10px;
+    transition: border var(--transition);
+}
+
+.task-item:hover {
+    border-color: var(--accent);
 }
 
 .task-item-header {
@@ -334,20 +603,20 @@
 }
 
 .task-status-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
     color: #fff;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
 }
 
 .task-id {
     flex: 1;
     font-size: 11px;
-    color: var(--text-dim);
-    font-family: monospace;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .task-result {
@@ -361,5 +630,120 @@
     background: var(--bg-base);
     border-radius: 4px;
     padding: 4px 6px;
-    font-family: monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    border: 1px solid var(--border);
+}
+
+/* ── Templates button ── */
+.btn-templates {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    background: rgba(124, 58, 237, 0.08);
+    color: #c4b5fd;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.btn-templates:hover {
+    background: rgba(124, 58, 237, 0.18);
+    border-color: rgba(124, 58, 237, 0.6);
+    color: #ddd6fe;
+    transform: translateY(-1px);
+}
+
+.btn-templates:active {
+    transform: scale(0.97);
+}
+
+/* ── Deploy button ── */
+.btn-deploy {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    background: rgba(124, 58, 237, 0.12);
+    color: var(--accent-light);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.btn-deploy:hover:not(:disabled) {
+    background: rgba(124, 58, 237, 0.22);
+    border-color: rgba(124, 58, 237, 0.7);
+    color: #ddd6fe;
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-deploy:active {
+    transform: scale(0.97);
+}
+
+.btn-deploy:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── Status badge ── */
+.topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+    height: 30px;
+}
+
+.topbar-status--idle {
+    color: var(--text-secondary);
+    border-color: var(--border-active);
+    background: transparent;
+}
+
+.topbar-status--running {
+    color: var(--green);
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.topbar-status--generating {
+    color: var(--accent-light);
+    border-color: var(--accent-dim);
+    background: var(--accent-dim);
+}
+
+.status-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.topbar-status--running .status-pip {
+    animation: blink 1s ease-in-out infinite;
+}
+
+.topbar-status--generating .status-pip {
+    animation: pulse-violet 1.5s ease-in-out infinite;
 }

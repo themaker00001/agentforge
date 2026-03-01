@@ -3,7 +3,7 @@
  * Connects the React frontend to the FastAPI backend at http://localhost:8000
  */
 
-const BASE = 'http://localhost:8000'
+const BASE = 'http://127.0.0.1:8000'
 
 // ── Health ────────────────────────────────────────────────────────────────────
 
@@ -124,6 +124,22 @@ export async function executeTool(tool, params = {}) {
     }
 }
 
+export async function uploadToolFile(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+        const res = await fetch(`${BASE}/tool/upload`, {
+            method: 'POST',
+            body: formData,
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return await res.json()
+    } catch (err) {
+        console.error('File upload failed:', err)
+        return null
+    }
+}
+
 // ── Background Tasks ──────────────────────────────────────────────────────────
 
 /**
@@ -171,3 +187,45 @@ export async function deleteTask(taskId) {
     const res = await fetch(`${BASE}/agent-tasks/${taskId}`, { method: 'DELETE' })
     return res.ok
 }
+
+// ── Deploy as API ─────────────────────────────────────────────────────────────
+
+export async function deployFlow(slug, flow, model, api_key = null) {
+    const payload = { slug, flow, model }
+    if (api_key) payload.api_key = api_key
+
+    const res = await fetch(`${BASE}/deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.detail || `Deploy failed: HTTP ${res.status}`)
+    }
+    return await res.json()
+}
+
+export async function listDeployed() {
+    try {
+        const res = await fetch(`${BASE}/deploy`)
+        if (!res.ok) return []
+        return await res.json()
+    } catch {
+        return []
+    }
+}
+
+export async function getDeployInfo(slug) {
+    const res = await fetch(`${BASE}/deploy/${slug}`)
+    if (!res.ok) throw new Error(`Deploy not found: HTTP ${res.status}`)
+    return await res.json()
+}
+
+export async function undeployFlow(slug) {
+    const res = await fetch(`${BASE}/deploy/${slug}`, { method: 'DELETE' })
+    if (!res.ok) throw new Error(`Undeploy failed: HTTP ${res.status}`)
+    return res.ok
+}
+

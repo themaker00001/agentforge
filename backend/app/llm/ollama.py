@@ -26,7 +26,7 @@ class OllamaLLM(BaseLLM):
         self,
         messages: list[dict],
         temperature: float = 0.7,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> str:
         payload = {
             "model": self.model,
@@ -35,9 +35,13 @@ class OllamaLLM(BaseLLM):
             "options": {
                 "temperature": temperature,
                 "num_predict": max_tokens,
+                # Expand the context window so long prompts (tool results,
+                # conversation history, system prompts) don't get silently
+                # truncated before the model even starts generating.
+                "num_ctx": 16384,
             },
         }
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(f"{OLLAMA_BASE}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -47,7 +51,7 @@ class OllamaLLM(BaseLLM):
         self,
         messages: list[dict],
         temperature: float = 0.7,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ):
         """Async generator that yields text chunks as they stream."""
         payload = {
@@ -57,6 +61,7 @@ class OllamaLLM(BaseLLM):
             "options": {
                 "temperature": temperature,
                 "num_predict": max_tokens,
+                "num_ctx": 16384,
             },
         }
         import json

@@ -7,13 +7,17 @@ import ConfigPanel from './components/ConfigPanel'
 import DebugConsole from './components/DebugConsole'
 import ChatPreview from './components/ChatPreview'
 import { generateFlow, executeFlow, submitBackgroundTask } from './services/api'
+import { saveFlow, loadFlow, listSavedFlows, exportFlow, importFlowFromJSON } from './services/storage'
+import TemplatesPanel from './components/TemplatesPanel'
+import DeployPanel from './components/DeployPanel'
 import './App.css'
 
 /* ── Edge helper ─────────────────────────────────────────────────────────── */
-function makeEdge(source, target) {
+function makeEdge(source, target, sourceHandle) {
     return {
-        id: `e_${source}_${target}`,
+        id: `e_${source}_${target}${sourceHandle ? `_${sourceHandle}` : ''}`,
         source, target,
+        ...(sourceHandle ? { sourceHandle } : {}),
         type: 'smoothstep', animated: true,
         style: { stroke: '#6366f1', strokeWidth: 2, opacity: 0.7 },
     }
@@ -23,7 +27,8 @@ function makeEdge(source, target) {
 function convertGraph(flow) {
     const ICONS = {
         input: '💬', agent: '🤖', tool: '🔍', knowledge: '📚', output: '📤',
-        shell_exec: '💻', file_system: '📁',
+        shell_exec: '💻', file_system: '📁', condition: '🔀', set_variable: '📌',
+        merge: '🔗', loop: '🔁', webhook: '🪝',
     }
     const nodes = flow.nodes.map(n => ({
         id: n.id,
@@ -37,7 +42,7 @@ function convertGraph(flow) {
             status: 'idle',
         },
     }))
-    const edges = flow.edges.map(e => makeEdge(e.source, e.target))
+    const edges = flow.edges.map(e => makeEdge(e.source, e.target, e.sourceHandle))
     return { nodes, edges }
 }
 
@@ -55,6 +60,9 @@ export default function App() {
     const [isGenerating, setIsGenerating] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
     const [chatOpen, setChatOpen] = useState(false)
+    const [userInput, setUserInput] = useState('')
+    const [showTemplates, setShowTemplates] = useState(false)
+    const [showDeploy, setShowDeploy] = useState(false)
 
     const consoleRef = useRef(null)
     const abortRef = useRef(null)
@@ -62,8 +70,8 @@ export default function App() {
 
     const syncNodes = useCallback((nds) => { latestNodes.current = nds; return nds }, [])
 
-    const log = useCallback((type, msg) => {
-        consoleRef.current?.addLog(type, msg)
+    const log = useCallback((type, msg, data) => {
+        consoleRef.current?.addLog(type, msg, data)
     }, [])
 
     /* ── Build FlowGraph payload for chat/execute endpoints ─────────────────── */
@@ -76,7 +84,7 @@ export default function App() {
                 model: n.data.model || selectedModel,
                 systemPrompt: n.data.systemPrompt || '',
                 temperature: n.data.temperature ?? 0.7,
-                maxTokens: n.data.maxTokens ?? 2048,
+                maxTokens: n.data.maxTokens ?? 4096,
                 memory: n.data.memory ?? true,
                 toolsEnabled: n.data.toolsEnabled ?? true,
                 streaming: n.data.streaming ?? false,
@@ -90,9 +98,35 @@ export default function App() {
                 fsPath: n.data.fsPath || null,
                 fsContent: n.data.fsContent || null,
                 fsPattern: n.data.fsPattern || null,
+                // Condition node
+                conditionExpr: n.data.conditionExpr || null,
+                // Set variable node
+                variableName: n.data.variableName || null,
+                variableValue: n.data.variableValue || null,
+                // Merge node
+                mergeMode: n.data.mergeMode || 'concat',
+                mergeSeparator: n.data.mergeSeparator ?? '\n\n',
+                // Loop node
+                loopVar: n.data.loopVar || null,
+                // Tool node
+                toolName: n.data.toolName || null,
+                params: n.data.params || null,
+                // Debate node
+                debatePersonas: n.data.debatePersonas || null,
+                debateRounds: n.data.debateRounds ?? 1,
+                debateJudgePrompt: n.data.debateJudgePrompt || null,
+                // Evaluator node
+                evaluatorRubric: n.data.evaluatorRubric || null,
+                evaluatorThreshold: n.data.evaluatorThreshold ?? 7.0,
+                // Note node
+                noteContent: n.data.noteContent || null,
+                noteColor: n.data.noteColor || '#fef3c7',
             },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+        edges: edges.map(e => ({
+            id: e.id, source: e.source, target: e.target,
+            sourceHandle: e.sourceHandle || null,
+        })),
     }), [selectedModel, edges])
 
     /* ── Generate Flow ───────────────────────────────────────────────────────── */
@@ -136,11 +170,11 @@ export default function App() {
         try {
             await executeFlow(
                 buildFlowPayload(),
-                '',
+                userInput.trim(),
                 selectedModel,
                 'default',
                 (event) => {
-                    log(event.type, event.message)
+                    log(event.type, event.message, event.data)
                     if (event.nodeId) {
                         const newStatus = STATUS_MAP[event.type]
                         if (newStatus) {
@@ -157,7 +191,7 @@ export default function App() {
         } finally {
             setIsRunning(false)
         }
-    }, [isRunning, selectedModel, setNodes, log, buildFlowPayload])
+    }, [isRunning, selectedModel, setNodes, log, buildFlowPayload, userInput])
 
     /* ── Run in Background ───────────────────────────────────────────────────── */
     const handleRunBackground = useCallback(async () => {
@@ -166,12 +200,47 @@ export default function App() {
             return
         }
         try {
-            const { task_id } = await submitBackgroundTask(buildFlowPayload(), '')
+            const { task_id } = await submitBackgroundTask(buildFlowPayload(), userInput.trim())
             log('ok', `Background task queued — ID: ${task_id}`)
         } catch (err) {
             log('err', `Background task failed: ${err.message}`)
         }
-    }, [buildFlowPayload, log])
+    }, [buildFlowPayload, log, userInput])
+
+    /* ── Save / Load / Export / Import ──────────────────────────────────────── */
+    const handleSave = useCallback((name) => {
+        if (!name || latestNodes.current.length === 0) return
+        saveFlow(name, { nodes: latestNodes.current, edges })
+        log('ok', `Flow saved as "${name}"`)
+    }, [edges, log])
+
+    const handleLoad = useCallback((name) => {
+        const data = loadFlow(name)
+        if (!data) { log('err', `No saved flow named "${name}"`); return }
+        setNodes(() => { syncNodes(data.nodes); return data.nodes })
+        setEdges(data.edges)
+        log('ok', `Loaded flow "${name}" — ${data.nodes.length} nodes`)
+    }, [setNodes, setEdges, syncNodes, log])
+
+    const handleExport = useCallback((name) => {
+        exportFlow(name || 'my-flow', { nodes: latestNodes.current, edges })
+        log('ok', `Exported flow as "${name || 'my-flow'}.json"`)
+    }, [edges, log])
+
+    /* ── Load a template ────────────────────────────────────────────────────── */
+    const handleLoadTemplate = useCallback((template) => {
+        setNodes(() => { syncNodes(template.nodes); return template.nodes })
+        setEdges(template.edges)
+        log('ok', `Template loaded: "${template.name}" — ${template.nodes.length} nodes`)
+    }, [setNodes, setEdges, syncNodes, log])
+
+    const handleImport = useCallback((jsonData) => {
+        const result = importFlowFromJSON(jsonData)
+        if (!result) { log('err', 'Invalid flow file — missing nodes/edges arrays'); return }
+        setNodes(() => { syncNodes(result.nodes); return result.nodes })
+        setEdges(result.edges)
+        log('ok', `Imported "${result.name}" — ${result.nodes.length} nodes`)
+    }, [setNodes, setEdges, syncNodes, log])
 
     /* ── Node click / update ─────────────────────────────────────────────────── */
     const handleNodeClick = useCallback((node) => setSelectedNode(node), [])
@@ -189,6 +258,7 @@ export default function App() {
 
     return (
         <div className="app-root">
+            <div className="mesh-bg" />
             <TopBar
                 onGenerate={handleGenerate}
                 onRun={handleRun}
@@ -199,6 +269,15 @@ export default function App() {
                 isGenerating={isGenerating}
                 isRunning={isRunning}
                 hasFlow={nodes.length > 0}
+                userInput={userInput}
+                onUserInputChange={setUserInput}
+                onSave={handleSave}
+                onLoad={handleLoad}
+                onExport={handleExport}
+                onImport={handleImport}
+                listSavedFlows={listSavedFlows}
+                onShowTemplates={() => setShowTemplates(true)}
+                onDeploy={() => setShowDeploy(true)}
             />
 
             <div className="app-body">
@@ -221,6 +300,7 @@ export default function App() {
                     }}
                     onDeleteNode={handleDeleteNode}
                     setEdges={setEdges}
+                    onShowTemplates={() => setShowTemplates(true)}
                 />
 
                 {selectedNode && (
@@ -237,6 +317,21 @@ export default function App() {
                 collapsed={consoleCollapsed}
                 onToggle={() => setConsoleCollapsed(c => !c)}
             />
+
+            {showTemplates && (
+                <TemplatesPanel
+                    onLoad={handleLoadTemplate}
+                    onClose={() => setShowTemplates(false)}
+                />
+            )}
+
+            {showDeploy && (
+                <DeployPanel
+                    flow={buildFlowPayload()}
+                    model={selectedModel}
+                    onClose={() => setShowDeploy(false)}
+                />
+            )}
 
             {chatOpen && (
                 <ChatPreview

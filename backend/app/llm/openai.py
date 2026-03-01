@@ -1,4 +1,5 @@
 import os
+from typing import AsyncGenerator
 from .base import BaseLLM
 
 try:
@@ -9,9 +10,10 @@ except ImportError:
 
 
 class OpenAILLM(BaseLLM):
-    def __init__(self, model: str = "gpt-4o"):
+    def __init__(self, model: str = "gpt-4o", api_key: str | None = None):
         self.model = model
-        api_key = os.getenv("OPENAI_API_KEY", "")
+        # Use provided key, otherwise fall back to environment variable
+        api_key = api_key or os.getenv("OPENAI_API_KEY", "")
         self._client = AsyncOpenAI(api_key=api_key) if _openai_available and api_key else None
 
     @property
@@ -32,7 +34,7 @@ class OpenAILLM(BaseLLM):
         self,
         messages: list[dict],
         temperature: float = 0.7,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> str:
         if not self._client:
             return "[OpenAI] API key not configured. Set OPENAI_API_KEY env var."
@@ -46,3 +48,28 @@ class OpenAILLM(BaseLLM):
             return resp.choices[0].message.content or ""
         except Exception as e:
             return f"[OpenAI error] {e}"
+
+    async def chat_stream(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ):
+        """Async generator yielding text chunks via OpenAI streaming API."""
+        if not self._client:
+            yield "[OpenAI] API key not configured. Set OPENAI_API_KEY env var."
+            return
+        try:
+            stream = await self._client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content if chunk.choices else None
+                if delta:
+                    yield delta
+        except Exception as e:
+            yield f"[OpenAI error] {e}"

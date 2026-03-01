@@ -1,38 +1,70 @@
-/* ── Flow nodes ── */
+/* ── Flow nodes — premium glass-morphism cards ── */
 .flow-node {
     position: relative;
-    background: var(--bg-surface);
-    border: 1.5px solid var(--border);
+    background: linear-gradient(145deg, rgba(30, 30, 42, 0.85), rgba(17, 17, 24, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius);
-    padding: 14px 16px;
+    padding: 14px 16px 12px;
     min-width: 168px;
-    box-shadow: 0 4px 24px #00000060;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset;
     cursor: pointer;
-    transition: border var(--transition), box-shadow var(--transition), transform var(--transition);
+    transition: all var(--transition);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    animation: fadeInUp .2s ease;
+    animation: fadeInUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    /* Colored top-border accent by node type */
+    border-top: 2px solid var(--node-color, var(--accent));
+}
+
+/* Top-border glow using pseudo-element */
+.flow-node::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: linear-gradient(90deg, transparent, var(--node-color, var(--accent)), transparent);
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 .flow-node:hover {
-    border-color: var(--node-color, var(--accent));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent),
-        0 8px 32px #00000080;
+    border-color: color-mix(in srgb, var(--node-color, var(--accent)) 60%, transparent);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent),
+        0 0 20px color-mix(in srgb, var(--node-color, var(--accent)) 20%, transparent),
+        0 12px 40px rgba(0, 0, 0, 0.6);
     transform: translateY(-2px);
+    background: linear-gradient(145deg, rgba(35, 35, 50, 0.9), rgba(20, 20, 30, 0.95));
 }
 
 .flow-node.selected {
     border-color: var(--node-color, var(--accent));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--node-color, var(--accent)) 80%, transparent),
+        0 0 35px color-mix(in srgb, var(--node-color, var(--accent)) 40%, transparent),
+        inset 0 0 20px color-mix(in srgb, var(--node-color, var(--accent)) 10%, transparent),
+        0 8px 32px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(145deg, rgba(40, 40, 55, 0.95), rgba(25, 25, 35, 0.95));
+    transform: translateY(-2px) scale(1.02);
 }
 
 .flow-node.running {
     border-color: var(--green);
-    box-shadow: 0 0 0 3px #22c55e30;
-    animation: pulse-green 1.5s infinite;
+    border-top-color: var(--green);
+    box-shadow:
+        0 0 0 2px rgba(16, 185, 129, 0.3),
+        0 0 24px rgba(16, 185, 129, 0.2);
+    animation: pulse-green 1.5s ease-in-out infinite;
 }
 
+/* ── Header ── */
 .fn-header {
     display: flex;
     align-items: center;
@@ -46,9 +78,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 14px;
     flex-shrink: 0;
-    background: color-mix(in srgb, var(--node-color, var(--accent)) 15%, transparent);
+    background: color-mix(in srgb, var(--node-color, var(--accent)) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.flow-node:hover .fn-icon {
+    transform: scale(1.08);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent);
 }
 
 .fn-info {
@@ -59,45 +98,50 @@
 .fn-title {
     font-size: 12.5px;
     font-weight: 600;
-    color: var(--text-pri);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -0.2px;
 }
 
 .fn-type {
-    font-size: 10px;
-    color: var(--text-dim);
+    font-size: 9.5px;
+    color: var(--text-muted);
     margin-top: 1px;
+    letter-spacing: 0.2px;
 }
 
+/* ── Status dot ── */
 .fn-status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    transition: box-shadow var(--transition);
 }
 
 .fn-status-idle {
-    background: var(--text-dim);
+    background: var(--text-muted);
 }
 
 .fn-status-ok {
     background: var(--green);
-    box-shadow: 0 0 6px var(--green);
+    box-shadow: 0 0 8px var(--green), 0 0 16px rgba(16, 185, 129, 0.4);
 }
 
 .fn-status-running {
     background: var(--yellow);
-    box-shadow: 0 0 6px var(--yellow);
-    animation: blink 1s infinite;
+    box-shadow: 0 0 8px var(--yellow);
+    animation: blink 0.8s ease-in-out infinite;
 }
 
 .fn-status-error {
     background: var(--red);
-    box-shadow: 0 0 6px var(--red);
+    box-shadow: 0 0 8px var(--red), 0 0 16px rgba(239, 68, 68, 0.4);
 }
 
+/* ── Delete button ── */
 .fn-delete {
     opacity: 0;
     display: flex;
@@ -108,10 +152,10 @@
     border-radius: 6px;
     border: none;
     background: transparent;
-    color: var(--text-dim);
+    color: var(--text-muted);
     cursor: pointer;
     flex-shrink: 0;
-    transition: opacity var(--transition), background var(--transition), color var(--transition);
+    transition: opacity var(--transition), background var(--transition), color var(--transition), transform var(--transition);
 }
 
 .flow-node:hover .fn-delete {
@@ -119,10 +163,16 @@
 }
 
 .fn-delete:hover {
-    background: #ef444420;
+    background: rgba(239, 68, 68, 0.18);
     color: #ef4444;
+    transform: scale(1.1);
 }
 
+.fn-delete:active {
+    transform: scale(0.9);
+}
+
+/* ── Footer ── */
 .fn-footer {
     display: flex;
     align-items: center;
@@ -135,36 +185,42 @@
     padding: 2px 7px;
     border-radius: 20px;
     font-weight: 600;
-    background: color-mix(in srgb, var(--node-color, var(--accent)) 18%, transparent);
+    background: color-mix(in srgb, var(--node-color, var(--accent)) 15%, transparent);
     color: var(--node-color, var(--accent));
+    border: 1px solid color-mix(in srgb, var(--node-color, var(--accent)) 25%, transparent);
+    letter-spacing: 0.2px;
 }
 
 .fn-model {
     font-size: 9px;
-    color: var(--text-dim);
-    font-family: 'SF Mono', monospace;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
     background: var(--bg-raised);
     padding: 1px 6px;
     border-radius: 4px;
-    border: 1px solid var(--border-dim);
+    border: 1px solid var(--border);
+    letter-spacing: -0.2px;
 }
 
 /* ── React Flow handles ── */
 .fn-handle {
-    width: 10px !important;
-    height: 10px !important;
+    width: 12px !important;
+    height: 12px !important;
     border-radius: 50% !important;
-    border: 2px solid var(--border) !important;
-    background: var(--bg-base) !important;
-    transition: all var(--transition);
+    border: 2px solid rgba(255, 255, 255, 0.8) !important;
+    background: var(--bg-surface) !important;
+    transition: all var(--transition) !important;
+    box-shadow: 0 0 0 3px rgba(10, 10, 15, 0.5) !important;
+    /* Creates a cutout effect */
 }
 
 .fn-handle:hover,
 .fn-handle-in:hover,
 .fn-handle-out:hover {
-    border-color: var(--accent) !important;
-    background: var(--accent) !important;
-    box-shadow: 0 0 6px var(--accent) !important;
+    border-color: #fff !important;
+    background: var(--node-color, var(--accent)) !important;
+    box-shadow: 0 0 12px var(--node-color, var(--accent)), 0 0 0 3px rgba(10, 10, 15, 0.5) !important;
+    transform: scale(1.3) !important;
 }
 
 /* Override React Flow default handle positioning */
@@ -174,4 +230,105 @@
 
 .react-flow__handle-right {
     right: -6px !important;
+}
+
+/* ── Sticky Note node ── */
+.flow-node-note {
+    position: relative;
+    background: var(--note-bg, #fef3c7);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 2px;
+    padding: 12px 14px 14px;
+    min-width: 160px;
+    max-width: 240px;
+    box-shadow: 3px 3px 16px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transform: rotate(-0.8deg);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+}
+
+.flow-node-note:hover {
+    transform: rotate(0deg) scale(1.02);
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.flow-node-note.selected {
+    box-shadow: 0 0 0 2px #7c3aed, 3px 3px 16px rgba(0, 0, 0, 0.3);
+}
+
+.note-text {
+    font-family: 'Segoe UI', 'Georgia', cursive;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #44403c;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 40px;
+}
+
+.fn-delete-note {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    border: none;
+    color: #78716c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.flow-node-note:hover .fn-delete-note {
+    opacity: 1;
+}
+
+/* ── Condition node T/F handle labels ── */
+.fn-handle-true {
+    background: var(--green) !important;
+    border-color: var(--green) !important;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5) !important;
+}
+
+.fn-handle-false {
+    background: var(--red) !important;
+    border-color: var(--red) !important;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5) !important;
+}
+
+.fn-handle-label {
+    position: absolute;
+    right: -22px;
+    font-size: 9px;
+    font-weight: 700;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.fn-handle-label-true {
+    top: calc(30% - 5px);
+    color: var(--green);
+}
+
+.fn-handle-label-false {
+    top: calc(70% - 5px);
+    color: var(--red);
+}
+
+/* ── Streaming cursor blink ── */
+.cursor-blink {
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    margin-left: 1px;
+    opacity: 0.8;
+}
+
+/* ── Partial chat bubble ── */
+.chat-bubble.partial {
+    opacity: 0.9;
 }

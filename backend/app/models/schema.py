@@ -6,14 +6,23 @@ from pydantic import BaseModel, Field
 # ── Node / Edge ──────────────────────────────────────────────────────────────
 
 class NodeType(str, Enum):
-    input       = "input"
-    agent       = "agent"
-    tool        = "tool"
-    knowledge   = "knowledge"
-    output      = "output"
-    shell_exec  = "shell_exec"   # Run shell commands / scripts locally
-    file_system = "file_system"  # Read, write, list, search local files
-    powerbi     = "powerbi"      # Power BI automation
+    input        = "input"
+    agent        = "agent"
+    tool         = "tool"
+    knowledge    = "knowledge"
+    output       = "output"
+    shell_exec   = "shell_exec"    # Run shell commands / scripts locally
+    file_system  = "file_system"   # Read, write, list, search local files
+    powerbi      = "powerbi"       # Power BI automation
+    condition    = "condition"     # If/else branching
+    set_variable = "set_variable"  # Store a named variable
+    merge        = "merge"         # Merge multiple upstream outputs
+    loop         = "loop"          # Iterate over a list
+    webhook      = "webhook"       # External HTTP trigger
+    debate       = "debate"        # Multi-agent debate → judge synthesizes consensus
+    evaluator    = "evaluator"     # AI quality gate — routes pass/fail by score
+    parallel     = "parallel"      # Fan-out: run child branches concurrently
+    note         = "note"          # Visual sticky note (no execution)
 
 
 class NodeData(BaseModel):
@@ -21,9 +30,10 @@ class NodeData(BaseModel):
     label:        str        = "Node"
     icon:         str        = "🤖"
     model:        str        = "ollama:llama3:8b"
+    apiKey:       Optional[str] = None
     systemPrompt: str        = ""
     temperature:  float      = Field(default=0.7, ge=0.0, le=1.0)
-    maxTokens:    int        = Field(default=2048, ge=64, le=32000)
+    maxTokens:    int        = Field(default=4096, ge=64, le=32000)
     memory:       bool       = True
     toolsEnabled: bool       = True
     streaming:    bool       = False
@@ -44,6 +54,26 @@ class NodeData(BaseModel):
     pbiDatasetId:   Optional[str] = None
     pbiAction:      Optional[str] = None   # "dax_query" | "refresh"
     pbiQuery:       Optional[str] = None   # DAX query string
+    # Condition node fields
+    conditionExpr: Optional[str] = None   # Python expression, e.g. "len(context) > 10"
+    # Set variable fields
+    variableName:  Optional[str] = None   # variable name to set
+    variableValue: Optional[str] = None   # static value (empty = use upstream context)
+    # Merge node fields
+    mergeMode:      Optional[str] = "concat"  # "concat" | "array" | "first_non_empty"
+    mergeSeparator: Optional[str] = "\n\n"
+    # Loop node fields
+    loopVar:       Optional[str] = None   # variable name for each item
+    # Debate node fields
+    debatePersonas:    Optional[list] = None  # [{name, systemPrompt}]
+    debateRounds:      int = 1
+    debateJudgePrompt: Optional[str] = None
+    # Evaluator node fields
+    evaluatorRubric:    Optional[str] = None  # rubric text
+    evaluatorThreshold: float = 7.0           # min score to "pass"
+    # Note / sticky-note fields
+    noteContent: Optional[str] = None
+    noteColor:   Optional[str] = "#fef3c7"
 
 
 class NodePosition(BaseModel):
@@ -59,9 +89,10 @@ class Node(BaseModel):
 
 
 class Edge(BaseModel):
-    id:     str
-    source: str
-    target: str
+    id:           str
+    source:       str
+    target:       str
+    sourceHandle: Optional[str] = None   # "true" | "false" for condition nodes
 
 
 class FlowGraph(BaseModel):
@@ -137,3 +168,38 @@ class LogEvent(BaseModel):
     message:   str
     timestamp: Optional[str] = None
     data:      Optional[Any] = None
+
+
+# ── Webhook models ────────────────────────────────────────────────────────────
+
+class WebhookRegisterRequest(BaseModel):
+    flow:      FlowGraph
+    model:     str = "ollama:llama3:8b"
+    sessionId: str = "default"
+
+
+class WebhookTriggerResponse(BaseModel):
+    output:    str
+    task_id:   Optional[str] = None
+
+
+# ── Deploy APIs ───────────────────────────────────────────────────────────────
+
+class DeployRequest(BaseModel):
+    slug: str
+    flow: FlowGraph
+    model: str = "ollama:llama3:8b"
+    api_key: Optional[str] = None
+
+
+class DeployedAPI(BaseModel):
+    slug: str
+    model: str
+    has_api_key: bool
+    endpoint_url: str
+    created_at: str
+
+
+class DeployInvokeRequest(BaseModel):
+    input: str = ""
+

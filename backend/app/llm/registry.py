@@ -14,7 +14,7 @@ from .gemini import GeminiLLM
 from .lmstudio import LMStudioLLM
 
 
-def get_llm(model_string: str) -> BaseLLM:
+def get_llm(model_string: str, api_key: str | None = None) -> BaseLLM:
     """Parse 'provider:model' and return the appropriate LLM instance."""
     if ":" in model_string:
         provider, model = model_string.split(":", 1)
@@ -25,9 +25,9 @@ def get_llm(model_string: str) -> BaseLLM:
     if provider == "ollama":
         return OllamaLLM(model)
     elif provider == "openai":
-        return OpenAILLM(model)
+        return OpenAILLM(model, api_key=api_key)
     elif provider in ("gemini", "google"):
-        return GeminiLLM(model)
+        return GeminiLLM(model, api_key=api_key)
     elif provider == "lmstudio":
         return LMStudioLLM(model)
     else:

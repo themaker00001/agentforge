@@ -1,3 +1,4 @@
+/* ── Sidebar ── */
 .sidebar {
     width: var(--sidebar-w);
     background: var(--bg-surface);
@@ -6,37 +7,58 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
-    transition: width var(--transition);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
+    position: relative;
 }
 
 .sidebar.collapsed {
     width: var(--sidebar-w-sm);
 }
 
+/* Subtle gradient overlay at top */
+.sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), transparent);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ── Header ── */
 .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 10px 8px 14px;
-    border-bottom: 1px solid var(--border-dim);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     min-height: 42px;
     flex-shrink: 0;
+    background: rgba(20, 20, 28, 0.4);
+    backdrop-filter: blur(8px);
 }
 
 .sidebar-heading {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: .8px;
+    letter-spacing: 1.2px;
     white-space: nowrap;
 }
 
 .sidebar-toggle {
     flex-shrink: 0;
+    transition: transform var(--transition);
 }
 
+.sidebar-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* ── Scroll area ── */
 .sidebar-scroll {
     flex: 1;
     overflow-y: auto;
@@ -44,20 +66,119 @@
     padding: 6px 6px 12px;
 }
 
+/* ── Search bar ── */
+.sidebar-search {
+    padding: 8px 8px 4px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sidebar-search-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.sidebar-search-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius-sm);
+    padding: 7px 28px 7px 30px;
+    font-size: 12px;
+    color: var(--text-pri);
+    font-family: inherit;
+    outline: none;
+    transition: border var(--transition), box-shadow var(--transition);
+}
+
+.sidebar-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.sidebar-search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.sidebar-search-clear {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 3px;
+    transition: color var(--transition);
+}
+
+.sidebar-search-clear:hover {
+    color: var(--text-pri);
+}
+
+/* ── Section ── */
 .sidebar-section {
-    padding-top: 6px;
+    padding-top: 8px;
 }
 
 .sidebar-section-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text-dim);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: .6px;
-    padding: 4px 8px 5px;
+    letter-spacing: 0.9px;
+    padding: 6px 10px 5px;
     white-space: nowrap;
+    position: relative;
+    /* Button reset + layout */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color var(--transition);
 }
 
+.sidebar-section-label:hover {
+    color: var(--text-sec);
+}
+
+/* Accent dot before section label */
+.sidebar-section-label::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 7px;
+    vertical-align: middle;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.sidebar-chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    flex-shrink: 0;
+}
+
+.sidebar-chevron.closed {
+    transform: rotate(-90deg);
+}
+
+/* ── Sidebar item ── */
 .sidebar-item {
     display: flex;
     align-items: center;
@@ -68,17 +189,47 @@
     color: var(--text-sec);
     transition: all var(--transition);
     user-select: none;
+    position: relative;
+    margin: 2px 0;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+/* Left accent bar — slides in on hover */
+.sidebar-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    width: 2px;
+    height: 60%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity var(--transition);
+    opacity: 0;
+}
+
+.sidebar-item:hover::before {
+    transform: translateY(-50%) scaleY(1);
+    opacity: 1;
 }
 
 .sidebar-item:hover {
-    background: var(--bg-hover);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
     color: var(--text-pri);
+    transform: translateX(4px);
+    padding-left: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-item:active {
     cursor: grabbing;
+    transform: scale(0.98) translateX(2px);
 }
 
+/* ── Icon ── */
 .si-icon {
     width: 26px;
     height: 26px;
@@ -86,44 +237,86 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     flex-shrink: 0;
+    transition: transform var(--transition);
 }
 
+.sidebar-item:hover .si-icon {
+    transform: scale(1.1);
+}
+
+/* ── Label ── */
 .si-label {
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
 }
 
+/* ── Badge — glowing pill ── */
 .si-badge {
     margin-left: auto;
-    font-size: 9px;
-    background: var(--accent-dim);
-    color: var(--accent);
-    padding: 1px 6px;
+    font-size: 8.5px;
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.2);
+    color: #c4b5fd;
+    padding: 1.5px 6px;
     border-radius: 20px;
-    font-weight: 600;
+    letter-spacing: 0.4px;
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    box-shadow: 0 0 6px rgba(124, 58, 237, 0.25);
+    flex-shrink: 0;
 }
 
-/* Icon colors per type */
+/* ── Icon backgrounds by node type ── */
 .si-agent .si-icon {
-    background: #6366f115;
+    background: rgba(124, 58, 237, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.2);
 }
 
 .si-tool .si-icon {
-    background: #3b82f615;
+    background: rgba(59, 130, 246, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
 }
 
 .si-knowledge .si-icon {
-    background: #f59e0b15;
+    background: rgba(245, 158, 11, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2);
 }
 
 .si-input .si-icon {
-    background: #22c55e15;
+    background: rgba(16, 185, 129, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
 }
 
 .si-output .si-icon {
-    background: #ec489915;
+    background: rgba(236, 72, 153, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.2);
+}
+
+.si-condition .si-icon,
+.si-set_variable .si-icon,
+.si-parallel .si-icon,
+.si-merge .si-icon,
+.si-loop .si-icon,
+.si-note .si-icon {
+    background: rgba(251, 191, 36, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2);
+}
+
+.si-shell_exec .si-icon,
+.si-file_system .si-icon,
+.si-powerbi .si-icon {
+    background: rgba(239, 68, 68, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.18);
+}
+
+.si-webhook .si-icon,
+.si-debate .si-icon,
+.si-evaluator .si-icon {
+    background: rgba(16, 185, 129, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
 }

@@ -1,14 +1,28 @@
+/* ── Config Panel ── */
 .config-panel {
     width: var(--right-w);
     background: var(--bg-surface);
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--border-active);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
-    animation: fadeInUp .15s ease;
+    animation: slideUpFade 0.18s ease;
+    position: relative;
 }
 
+/* Top accent line */
+.config-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.5), transparent);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ── Header ── */
 .cp-header {
     display: flex;
     align-items: center;
@@ -16,6 +30,7 @@
     padding: 14px 16px 12px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    background: rgba(26, 26, 36, 0.5);
 }
 
 .cp-title {
@@ -24,12 +39,14 @@
     gap: 8px;
     font-size: 13px;
     font-weight: 600;
+    color: var(--text-primary);
 }
 
 .cp-icon {
     font-size: 16px;
 }
 
+/* ── Body ── */
 .cp-body {
     flex: 1;
     min-height: 0;
@@ -46,7 +63,7 @@
     gap: 7px;
 }
 
-/* Slider */
+/* ── Slider ── */
 .slider-wrap {
     display: flex;
     flex-direction: column;
@@ -61,26 +78,28 @@
 
 .slider-bound {
     font-size: 10.5px;
-    color: var(--text-dim);
+    color: var(--text-muted);
 }
 
 .slider-val {
     font-size: 12px;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--accent-light);
     background: var(--accent-dim);
     padding: 2px 8px;
     border-radius: 6px;
+    border: 1px solid rgba(124, 58, 237, 0.25);
 }
 
 input[type=range] {
     -webkit-appearance: none;
     width: 100%;
-    height: 4px;
+    height: 3px;
     border-radius: 2px;
     background: var(--bg-raised);
     outline: none;
     cursor: pointer;
+    position: relative;
 }
 
 input[type=range]::-webkit-slider-thumb {
@@ -90,20 +109,31 @@ input[type=range]::-webkit-slider-thumb {
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
-    box-shadow: 0 0 6px var(--accent-glow);
+    box-shadow: 0 0 8px var(--accent-glow), 0 0 0 2px rgba(124, 58, 237, 0.2);
+    transition: transform var(--transition), box-shadow var(--transition);
 }
 
-/* Toggle */
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 14px var(--accent-glow);
+}
+
+/* ── Toggle row ── */
 .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 7px 0;
     border-bottom: 1px solid var(--border-dim);
+    transition: background var(--transition);
 }
 
 .toggle-row:last-child {
     border-bottom: none;
+}
+
+.toggle-row:hover {
+    background: rgba(124, 58, 237, 0.03);
 }
 
 .toggle-info {
@@ -115,28 +145,31 @@ input[type=range]::-webkit-slider-thumb {
 .toggle-name {
     font-size: 12.5px;
     font-weight: 500;
+    color: var(--text-pri);
 }
 
 .toggle-desc {
     font-size: 10.5px;
-    color: var(--text-dim);
+    color: var(--text-muted);
 }
 
+/* ── Toggle switch ── */
 .toggle {
     width: 36px;
     height: 20px;
     border-radius: 10px;
     background: var(--bg-raised);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-active);
     position: relative;
     cursor: pointer;
-    transition: background var(--transition);
+    transition: background var(--transition), border var(--transition), box-shadow var(--transition);
     flex-shrink: 0;
 }
 
 .toggle.on {
     background: var(--accent);
     border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .toggle::after {
@@ -147,7 +180,7 @@ input[type=range]::-webkit-slider-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--text-dim);
+    background: var(--text-muted);
     transition: all var(--transition);
 }
 
@@ -156,21 +189,7 @@ input[type=range]::-webkit-slider-thumb {
     background: #fff;
 }
 
-.cp-apply {
-    width: 100%;
-    justify-content: center;
-    margin-top: 4px;
-}
-
-/* Hint text next to labels */
-.form-label-hint {
-    font-size: 10px;
-    color: var(--text-dim);
-    font-weight: 400;
-    margin-left: 4px;
-}
-
-/* Reset <button> defaults so .toggle looks identical to before */
+/* Reset <button> defaults */
 button.toggle {
     appearance: none;
     -webkit-appearance: none;
@@ -180,5 +199,20 @@ button.toggle {
 }
 
 button.toggle:focus-visible {
-    box-shadow: 0 0 0 2px var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Apply button ── */
+.cp-apply {
+    width: 100%;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+/* ── Hint text ── */
+.form-label-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-left: 4px;
 }

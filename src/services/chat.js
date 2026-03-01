@@ -1,6 +1,7 @@
 /**
  * Chat with the active agent flow — streams SSE events and returns
  * a final 'response' event with the assembled output text.
+ * Also passes 'chunk' events to onLog for incremental rendering.
  */
 
 const BASE = 'http://localhost:8000'
@@ -16,23 +17,32 @@ export async function chatWithAgent(message, flow, model, sessionId = 'default',
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
+    let buffer = ''
 
     while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const lines = decoder.decode(value).split('\n')
-        for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const payload = line.slice(6).trim()
-            if (payload === '[DONE]') return
-            try {
-                const event = JSON.parse(payload)
-                if (event.type === 'response') {
-                    onResponse(event.message)
-                } else {
-                    onLog?.(event)
-                }
-            } catch { /* skip malformed */ }
+        buffer += decoder.decode(value, { stream: true })
+
+        // Split on double-newline (SSE event boundary)
+        const parts = buffer.split('\n\n')
+        buffer = parts.pop() ?? ''   // keep incomplete last part
+
+        for (const part of parts) {
+            for (const line of part.split('\n')) {
+                if (!line.startsWith('data: ')) continue
+                const payload = line.slice(6).trim()
+                if (payload === '[DONE]') return
+                try {
+                    const event = JSON.parse(payload)
+                    if (event.type === 'response') {
+                        onResponse(event.message)
+                    } else {
+                        // chunk events AND regular log events both go through onLog
+                        onLog?.(event)
+                    }
+                } catch { /* skip malformed */ }
+            }
         }
     }
 }

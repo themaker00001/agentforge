@@ -13,7 +13,13 @@ import {
 import '@xyflow/react/dist/style.css'
 import './FlowCanvas.css'
 import { nodeTypes } from './nodes/FlowNode'
-import { Maximize2, LayoutGrid, MousePointer } from 'lucide-react'
+import { Maximize2, LayoutGrid, MousePointer, Zap, LayoutTemplate, ChevronRight } from 'lucide-react'
+
+const QUICK_TEMPLATES = [
+    { icon: '🤝', name: 'Customer Support Bot', desc: 'AI agent with memory & escalation' },
+    { icon: '🔍', name: 'RAG Chatbot', desc: 'Knowledge base + LLM retrieval' },
+    { icon: '💻', name: 'Code Assistant', desc: 'Multi-step code gen + execution' },
+]
 
 const DEFAULT_EDGE_OPTIONS = {
     type: 'smoothstep',
@@ -21,7 +27,7 @@ const DEFAULT_EDGE_OPTIONS = {
     style: { stroke: '#6366f1', strokeWidth: 2, opacity: 0.7 },
 }
 
-export default function FlowCanvas({ nodesIn, edgesIn, onNodesChange, onEdgesChange, onNodeClick, onNodesReady, onAddNode, onDeleteNode, setEdges }) {
+export default function FlowCanvas({ nodesIn, edgesIn, onNodesChange, onEdgesChange, onNodeClick, onNodesReady, onAddNode, onDeleteNode, setEdges, onShowTemplates }) {
     const reactFlowWrapper = useRef(null)
     const [, , , rfInstance] = [null, null, null, useRef(null)]
 
@@ -123,10 +129,39 @@ export default function FlowCanvas({ nodesIn, edgesIn, onNodesChange, onEdgesCha
             {/* Empty state overlay */}
             {isEmpty && (
                 <div className="canvas-empty">
-                    <div className="empty-icon">⚡</div>
-                    <div className="empty-title">Start building your agent</div>
-                    <div className="empty-sub">
-                        Type a prompt and click <strong>Generate Flow</strong>, or drag nodes from the sidebar.
+                    <div className="empty-hero">
+                        <div className="empty-icon-wrap">
+                            <div className="empty-icon-glow" />
+                            <div className="empty-icon">⚡</div>
+                        </div>
+                        <h1 className="empty-title">Build AI Agents Visually</h1>
+                        <p className="empty-sub">Create, test, and deploy intelligent workflows in minutes</p>
+                        <div className="empty-actions">
+                            <button
+                                className="btn btn-primary empty-cta-primary"
+                                onClick={() => document.querySelector('.topbar-prompt input')?.focus()}
+                            >
+                                <Zap size={14} /> Create New Agent
+                            </button>
+                            <button className="btn empty-cta-secondary" onClick={onShowTemplates}>
+                                <LayoutTemplate size={14} /> Try Template
+                            </button>
+                        </div>
+                    </div>
+                    <div className="empty-templates">
+                        <div className="empty-templates-label">Start from a template</div>
+                        <div className="empty-template-cards">
+                            {QUICK_TEMPLATES.map(t => (
+                                <button key={t.name} className="empty-template-card" onClick={onShowTemplates}>
+                                    <span className="etc-icon">{t.icon}</span>
+                                    <div className="etc-info">
+                                        <div className="etc-name">{t.name}</div>
+                                        <div className="etc-desc">{t.desc}</div>
+                                    </div>
+                                    <ChevronRight size={12} className="etc-arrow" />
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

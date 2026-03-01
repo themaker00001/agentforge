@@ -9,28 +9,18 @@ from app.services import memory as mem_svc
 from app.services import knowledge as know_svc
 
 
-async def run_agent(
-    node: Node,
-    user_input: str,
-    node_outputs: dict[str, str],
-    session_id: str,
-    model_override: str | None = None,
-    context: str | None = None,
-) -> str:
-    """Execute an agent node and return its output string."""
+def _build_messages(node: Node, user_input: str, node_outputs: dict, session_id: str,
+                    context: str | None, model_override: str | None) -> tuple[list[dict], object]:
+    """Build the message list and llm instance shared by run_agent and run_agent_stream."""
     data = node.data
     model_str = model_override or data.model or "ollama:llama3:8b"
-    llm = get_llm(model_str)
+    llm = get_llm(model_str, api_key=data.apiKey)
 
-    # `context` is the direct predecessor outputs passed from the executor.
-    # Fall back to all prior outputs, then the raw user input.
     if context is None:
         context = "\n\n".join(node_outputs.values()) or user_input
 
-    # Retrieve knowledge context using the ORIGINAL user question (not context blob)
     knowledge_ctx = know_svc.context_for(user_input, top_k=3) if user_input else ""
 
-    # System prompt
     system_content = data.systemPrompt or (
         f"You are a helpful {data.label} assistant. "
         "Use the provided context to answer the user's question clearly and concisely."
@@ -42,23 +32,64 @@ async def run_agent(
 
     messages: list[dict] = [{"role": "system", "content": system_content}]
 
-    # Inject conversation memory
     if data.memory:
         messages = mem_svc.inject_context(session_id, messages)
 
-    # The actual user message is always the original question
     messages.append({"role": "user", "content": user_input or context})
 
-    # Call LLM
+    return messages, llm
+
+
+async def run_agent(
+    node: Node,
+    user_input: str,
+    node_outputs: dict[str, str],
+    session_id: str,
+    model_override: str | None = None,
+    context: str | None = None,
+) -> str:
+    """Execute an agent node and return its output string."""
+    data = node.data
+    messages, llm = _build_messages(node, user_input, node_outputs, session_id, context, model_override)
+
     response = await llm.chat(
         messages,
         temperature=data.temperature,
         max_tokens=data.maxTokens,
     )
 
-    # Store in short-term memory
     if data.memory:
         mem_svc.store_short(session_id, "user",      user_input or context)
         mem_svc.store_short(session_id, "assistant", response)
 
     return response
+
+
+async def run_agent_stream(
+    node: Node,
+    user_input: str,
+    node_outputs: dict[str, str],
+    session_id: str,
+    model_override: str | None = None,
+    context: str | None = None,
+):
+    """
+    Async generator that streams text chunks from the LLM.
+    Yields str chunks. Stores the full response in memory when done.
+    """
+    data = node.data
+    messages, llm = _build_messages(node, user_input, node_outputs, session_id, context, model_override)
+
+    full_response = []
+    async for chunk in llm.chat_stream(
+        messages,
+        temperature=data.temperature,
+        max_tokens=data.maxTokens,
+    ):
+        full_response.append(chunk)
+        yield chunk
+
+    response = "".join(full_response)
+    if data.memory:
+        mem_svc.store_short(session_id, "user",      user_input or context or "")
+        mem_svc.store_short(session_id, "assistant", response)

@@ -1,33 +1,101 @@
+/* ── Debug Console ── */
 .debug-console {
     position: fixed;
     bottom: 0;
-    /* left/right set programmatically by App via CSS vars */
     left: var(--sidebar-w);
     right: 0;
     height: var(--bottom-h);
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border);
+    background: rgba(10, 10, 15, 0.92);
+    border-top: 1px solid var(--border-active);
     display: flex;
     flex-direction: column;
     z-index: 50;
-    transition: height var(--transition), left var(--transition);
+    transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* height transition omitted — drag resize uses inline style */
+    backdrop-filter: blur(12px);
+}
+
+/* Track sidebar collapse state via :has() — shift console to match */
+.app-root:has(.sidebar.collapsed) .debug-console {
+    left: var(--sidebar-w-sm);
 }
 
 .debug-console.collapsed {
     height: 38px;
 }
 
+/* ── Drag handle ── */
+.dc-drag-handle {
+    height: 6px;
+    cursor: ns-resize;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    /* Glowing top edge lives here when expanded */
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(124, 58, 237, 0.4) 25%,
+        rgba(157, 110, 255, 0.6) 50%,
+        rgba(124, 58, 237, 0.4) 75%,
+        transparent 100%
+    );
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: top;
+    transition: background var(--transition);
+}
+
+.dc-drag-handle:hover {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(124, 58, 237, 0.6) 20%,
+        rgba(157, 110, 255, 0.9) 50%,
+        rgba(124, 58, 237, 0.6) 80%,
+        transparent 100%
+    );
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: top;
+}
+
+/* Grip dots indicator */
+.dc-drag-handle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-active);
+    transition: width var(--transition), background var(--transition);
+}
+
+.dc-drag-handle:hover::after {
+    width: 56px;
+    background: var(--accent);
+}
+
+/* ── Header ── */
 .dc-header {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 14px;
     height: 38px;
-    border-bottom: 1px solid var(--border-dim);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     cursor: pointer;
     user-select: none;
     color: var(--text-sec);
+    transition: background var(--transition);
+}
+
+.dc-header:hover {
+    background: rgba(124, 58, 237, 0.05);
 }
 
 .dc-title {
@@ -44,38 +112,59 @@
     height: 6px;
     border-radius: 50%;
     background: var(--green);
-    box-shadow: 0 0 5px var(--green);
-    animation: blink 2s infinite;
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 2s ease-in-out infinite;
 }
 
+/* ── Tabs — underline style ── */
 .dc-tabs {
     display: flex;
-    gap: 2px;
+    gap: 0;
     margin-left: auto;
 }
 
 .dc-tab {
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 4px 12px;
     font-size: 11.5px;
     font-weight: 500;
     cursor: pointer;
-    color: var(--text-dim);
+    color: var(--text-muted);
     transition: all var(--transition);
+    position: relative;
+}
+
+.dc-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .dc-tab.active {
-    background: var(--bg-hover);
     color: var(--text-pri);
 }
 
-.dc-tab:hover {
-    color: var(--text-pri);
+.dc-tab.active::after {
+    transform: scaleX(1);
 }
 
+.dc-tab:hover:not(.active) {
+    color: var(--text-sec);
+}
+
+/* ── Body ── */
 .dc-body {
     flex: 1;
     overflow-y: auto;
+    /* Allow text selection for copy-paste */
+    user-select: text;
+    -webkit-user-select: text;
     padding: 6px 14px 10px;
     display: flex;
     flex-direction: column;
@@ -84,23 +173,40 @@
 
 .dc-empty {
     font-size: 11.5px;
-    color: var(--text-dim);
-    padding: 8px 0;
+    color: var(--text-muted);
+    padding: 10px 0;
+    font-style: italic;
 }
 
+/* ── Log lines ── */
 .dc-line {
     display: flex;
     align-items: flex-start;
     gap: 10px;
     font-size: 11.5px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
     line-height: 1.6;
-    padding: 1px 0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background var(--transition);
+    /* ensure text stays selectable */
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.dc-line--expandable {
+    cursor: pointer;
+}
+
+.dc-line--expandable:hover {
+    background: rgba(124, 58, 237, 0.06);
 }
 
 .dc-time {
-    color: var(--text-dim);
+    color: var(--text-muted);
     flex-shrink: 0;
+    padding-top: 1px;
+    font-size: 10.5px;
 }
 
 .dc-badge {
@@ -110,38 +216,89 @@
     font-weight: 700;
     flex-shrink: 0;
     margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.dc-msg {
-    color: var(--text-pri);
+.dc-msg-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
+/* Log message colors by type */
+.dc-msg             { color: #86efac; white-space: pre-wrap; word-break: break-all; }
+.log-err .dc-msg    { color: #fca5a5; }
+.log-warn .dc-msg   { color: #fcd34d; }
+.log-info .dc-msg   { color: #93c5fd; }
+.log-run .dc-msg,
+.log-exec .dc-msg   { color: #c4b5fd; }
+
+.dc-expand-hint {
+    font-size: 9px;
+    color: var(--text-muted);
+    align-self: flex-start;
+    margin-left: auto;
+    padding-left: 8px;
+}
+
+.dc-full-output {
+    margin-top: 4px;
+    padding: 8px 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #a7f3d0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.55;
+    max-height: 300px;
+    overflow-y: auto;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.dc-count {
+    font-size: 10px;
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 10px;
+    padding: 0 6px;
+    color: #c4b5fd;
+    font-weight: 500;
+}
+
+/* ── Badge colors ── */
 .log-info .dc-badge {
-    background: #3b82f618;
-    color: #60a5fa;
-}
-
-.log-ok .dc-badge {
-    background: #22c55e18;
-    color: #4ade80;
-}
-
-.log-warn .dc-badge {
-    background: #f59e0b18;
-    color: #fbbf24;
-}
-
-.log-err .dc-badge {
-    background: #ef444418;
-    color: #f87171;
-}
-
-.log-run .dc-badge {
-    background: #6366f118;
-    color: #818cf8;
-}
-
-.log-exec .dc-badge {
-    background: #3b82f618;
+    background: rgba(59, 130, 246, 0.18);
     color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.log-ok .dc-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.log-warn .dc-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.log-err .dc-badge {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.log-run .dc-badge {
+    background: rgba(124, 58, 237, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+}
+.log-exec .dc-badge {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.25);
 }

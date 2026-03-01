@@ -50,7 +50,7 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 | `web_search` | Real-time web search via DuckDuckGo (no API key) |
 | `http_request` | Call any REST API — GET/POST with JSON body |
 | `code_runner` | Execute Python code in a sandboxed environment |
-| `file_reader` | Read files from a sandboxed workspace |
+| `file_reader` | Read files from a sandboxed workspace. *Supports drag-and-drop file configuration in the UI.* |
 | `summarize` | Condense and distill long text |
 
 ### Node Types

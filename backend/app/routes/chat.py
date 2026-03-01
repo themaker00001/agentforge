@@ -21,21 +21,12 @@ class ChatRequest(BaseModel):
     sessionId: str = "default"
 
 
-def _extract_content(message: str) -> str:
-    """Strip executor prefix '  ✓ NodeLabel: ' from an ok message."""
-    msg = message.strip()
-    if ": " in msg:
-        return msg.split(": ", 1)[1].strip("…").strip()
-    return msg
-
-
 def _is_output_node(node_id: str, flow: FlowGraph) -> bool:
     """Return True if the given node has nodeType == 'output'."""
     for node in flow.nodes:
         if node.id == node_id:
             return node.data.nodeType.value == "output"
     return False
-
 
 
 @router.post("/chat")
@@ -47,7 +38,7 @@ async def chat_route(req: ChatRequest):
     """
     async def event_stream():
         output_response = ""
-        agent_response  = ""
+        last_ok_output  = ""
 
         try:
             async for event in execute(
@@ -59,14 +50,18 @@ async def chat_route(req: ChatRequest):
                 yield f"data: {json.dumps(event)}\n\n"
 
                 if event.get("type") == "ok" and event.get("nodeId"):
-                    content = (event.get("data") or {}).get("output") or _extract_content(event.get("message", ""))
+                    # Prefer event.data.output — always the real text
+                    content = (event.get("data") or {}).get("output", "")
                     if not content or content == "[DONE]":
                         continue
+
+                    # Track last non-empty ok output regardless of node type
+                    if content.strip():
+                        last_ok_output = content
+
                     node_id = event["nodeId"]
                     if _is_output_node(node_id, req.flow):
                         output_response = content
-                    elif len(content) > 10:
-                        agent_response = content
 
         except Exception as exc:
             err_event = {"type": "err", "message": f"Execution error: {exc}"}
@@ -75,7 +70,7 @@ async def chat_route(req: ChatRequest):
             yield "data: [DONE]\n\n"
             return
 
-        response_text = output_response or agent_response or "Done."
+        response_text = output_response or last_ok_output or "(No output produced)"
         yield f"data: {json.dumps({'type': 'response', 'message': response_text})}\n\n"
         yield "data: [DONE]\n\n"
 

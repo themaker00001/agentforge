@@ -10,9 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 # Import routers
-from app.routes import flow, execute, models, knowledge, tools, chat
+from app.routes import flow, execute, models, knowledge, tools, chat, webhook, deploy
 from app.routes import agent_tasks
 from app.services import background_agent as bg_svc
+from app.services import deploy_store
 
 
 @asynccontextmanager
@@ -30,6 +31,9 @@ async def lifespan(app: FastAPI):
                 print(f"✅ Ollama connected — models: {', '.join(model_names) or 'none installed'}")
     except Exception:
         print("⚠️  Ollama not running — start with: ollama serve")
+
+    # Init SQLite DB for deployed flows
+    deploy_store.init_db()
 
     # Start persistent background agent worker
     worker_task = asyncio.create_task(bg_svc.worker_loop())
@@ -69,6 +73,8 @@ app.include_router(models.router,       tags=["Models"])
 app.include_router(knowledge.router,    tags=["Knowledge"])
 app.include_router(tools.router,        tags=["Tools"])
 app.include_router(agent_tasks.router)  # tags set in router definition
+app.include_router(webhook.router,      tags=["Webhook"])
+app.include_router(deploy.router)       # tags set in router definition
 
 
 @app.get("/")

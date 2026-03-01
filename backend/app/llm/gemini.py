@@ -10,9 +10,10 @@ except ImportError:
 
 
 class GeminiLLM(BaseLLM):
-    def __init__(self, model: str = "gemini-3.0-flash"):
+    def __init__(self, model: str = "gemini-3.0-flash", api_key: str | None = None):
         self.model = model
-        api_key = os.getenv("GEMINI_API_KEY", "")
+        # Use provided key, otherwise fall back to environment variable
+        api_key = api_key or os.getenv("GEMINI_API_KEY", "")
         if _gemini_available and api_key:
             self._client = genai.Client(api_key=api_key)
         else:

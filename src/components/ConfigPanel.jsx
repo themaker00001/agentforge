@@ -1,28 +1,87 @@
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, UploadCloud, Copy, Check } from 'lucide-react'
+import { uploadToolFile } from '../services/api'
 import './ConfigPanel.css'
 
-/* Stop ALL keyboard events from bubbling to React Flow (which intercepts
-   keys like Delete, Backspace, arrow keys via document-level listeners). */
+const BASE = 'http://localhost:8000'
+
+/* Stop ALL keyboard events from bubbling to React Flow */
 const stopKeys = (e) => {
     e.stopPropagation()
     e.nativeEvent?.stopImmediatePropagation()
 }
 
 export default function ConfigPanel({ node, onClose, onUpdate }) {
+    // All hooks MUST be called before any conditional return
+    const [isDragging, setIsDragging] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const [webhookUrl, setWebhookUrl] = useState('')
+    const [isRegistering, setIsRegistering] = useState(false)
+    const [copied, setCopied] = useState(false)
+
     if (!node) return null
 
     const { data } = node
     const icons = {
         input: '💬', agent: '🤖', tool: '🔧', knowledge: '📚', output: '📤',
         shell_exec: '💻', file_system: '📁', powerbi: '📊',
+        condition: '🔀', set_variable: '📌', merge: '🔗', loop: '🔁', webhook: '🪝',
     }
 
     const update = (key, value) => onUpdate(node.id, { ...data, [key]: value })
 
-    const isShell = data.nodeType === 'shell_exec'
-    const isFS = data.nodeType === 'file_system'
-    const isPowerBI = data.nodeType === 'powerbi'
-    const isLocal = isShell || isFS || isPowerBI
+    const isShell       = data.nodeType === 'shell_exec'
+    const isFS          = data.nodeType === 'file_system'
+    const isPowerBI     = data.nodeType === 'powerbi'
+    const isTool        = data.nodeType === 'tool'
+    const isInput       = data.nodeType === 'input'
+    const isKnowledge   = data.nodeType === 'knowledge'
+    const isCondition   = data.nodeType === 'condition'
+    const isSetVariable = data.nodeType === 'set_variable'
+    const isMerge       = data.nodeType === 'merge'
+    const isLoop        = data.nodeType === 'loop'
+    const isWebhook     = data.nodeType === 'webhook'
+    const isDebate      = data.nodeType === 'debate'
+    const isEvaluator   = data.nodeType === 'evaluator'
+    const isParallel    = data.nodeType === 'parallel'
+    const isNote        = data.nodeType === 'note'
+
+    // isLocal = nodes that don't show the standard LLM config block
+    const isLocal = isShell || isFS || isPowerBI || isTool || isInput || isKnowledge
+                 || isCondition || isSetVariable || isMerge || isLoop || isWebhook
+                 || isParallel || isNote
+
+    const p = data.params || {}
+    const toolName = data.toolName || ''
+
+    const handleRegisterWebhook = async () => {
+        setIsRegistering(true)
+        try {
+            // We'll register with the current flow — but we don't have full flow here.
+            // Instead we just POST to register and show the URL.
+            const res = await fetch(`${BASE}/webhook/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    flow: { nodes: [], edges: [] },
+                    model: 'ollama:llama3:8b',
+                    sessionId: 'default',
+                }),
+            })
+            const data = await res.json()
+            setWebhookUrl(data.trigger_url)
+        } catch (e) {
+            setWebhookUrl('Error: could not register webhook')
+        } finally {
+            setIsRegistering(false)
+        }
+    }
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(webhookUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
 
     return (
         <aside className="config-panel">
@@ -35,6 +94,309 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
             </div>
 
             <div className="cp-body">
+
+                {/* ── Sticky Note config ── */}
+                {isNote && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label">Note Color</label>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {['#fef3c7','#dbeafe','#dcfce7','#fce7f3','#ede9fe','#fee2e2','#f3f4f6'].map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => update('noteColor', c)}
+                                        style={{
+                                            width: 24, height: 24, borderRadius: 6, border: data.noteColor === c ? '2px solid var(--accent)' : '2px solid transparent',
+                                            background: c, cursor: 'pointer', transition: 'border 0.15s',
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-notecontent`}>Note Text</label>
+                            <textarea
+                                id={`${node.id}-notecontent`}
+                                className="form-textarea"
+                                rows={6}
+                                placeholder="Write your note here…"
+                                value={data.noteContent || ''}
+                                onChange={e => update('noteContent', e.target.value)}
+                                onKeyDown={stopKeys}
+                                style={{ fontFamily: 'Georgia, serif', fontSize: '13px' }}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ── Debate node config ── */}
+                {isDebate && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Multiple AI personas debate the topic in parallel, then a judge synthesizes the best answer. Uniquely AI-native — no equivalent in traditional workflow tools.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">Personas</label>
+                            {(data.debatePersonas || [
+                                { name: 'Proponent', systemPrompt: 'You argue strongly IN FAVOR with evidence.' },
+                                { name: 'Critic',    systemPrompt: 'You challenge with counterarguments.' },
+                                { name: 'Pragmatist',systemPrompt: 'You take a balanced, practical view.' },
+                            ]).map((p, i) => (
+                                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 8, marginBottom: 6 }}>
+                                    <input
+                                        type="text" className="form-input"
+                                        style={{ marginBottom: 4, fontWeight: 600 }}
+                                        placeholder="Persona name"
+                                        value={p.name}
+                                        onChange={e => {
+                                            const ps = [...(data.debatePersonas || [
+                                                { name: 'Proponent', systemPrompt: 'You argue strongly IN FAVOR with evidence.' },
+                                                { name: 'Critic',    systemPrompt: 'You challenge with counterarguments.' },
+                                                { name: 'Pragmatist',systemPrompt: 'You take a balanced, practical view.' },
+                                            ])]
+                                            ps[i] = { ...ps[i], name: e.target.value }
+                                            update('debatePersonas', ps)
+                                        }}
+                                        onKeyDown={stopKeys}
+                                    />
+                                    <textarea
+                                        className="form-textarea" rows={2}
+                                        placeholder="System prompt for this persona"
+                                        value={p.systemPrompt}
+                                        onChange={e => {
+                                            const ps = [...(data.debatePersonas || [
+                                                { name: 'Proponent', systemPrompt: 'You argue strongly IN FAVOR with evidence.' },
+                                                { name: 'Critic',    systemPrompt: 'You challenge with counterarguments.' },
+                                                { name: 'Pragmatist',systemPrompt: 'You take a balanced, practical view.' },
+                                            ])]
+                                            ps[i] = { ...ps[i], systemPrompt: e.target.value }
+                                            update('debatePersonas', ps)
+                                        }}
+                                        onKeyDown={stopKeys}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-judgeprompt`}>Judge Prompt</label>
+                            <textarea
+                                id={`${node.id}-judgeprompt`}
+                                className="form-textarea" rows={3}
+                                placeholder="You are a neutral judge. Synthesize a final answer from the debate…"
+                                value={data.debateJudgePrompt || ''}
+                                onChange={e => update('debateJudgePrompt', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ── Evaluator/Grader node config ── */}
+                {isEvaluator && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            AI-powered quality gate. Scores the upstream output 1–10 against your rubric and routes to the <span style={{ color: '#22c55e', fontWeight: 600 }}>✓ pass</span> or <span style={{ color: '#ef4444', fontWeight: 600 }}>✗ fail</span> branch.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-rubric`}>Evaluation Rubric</label>
+                            <textarea
+                                id={`${node.id}-rubric`}
+                                className="form-textarea" rows={4}
+                                placeholder="Rate this response on: accuracy, completeness, clarity, and relevance to the user's question."
+                                value={data.evaluatorRubric || ''}
+                                onChange={e => update('evaluatorRubric', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">
+                                Pass Threshold: <strong>{data.evaluatorThreshold ?? 7.0}</strong>/10
+                            </label>
+                            <input
+                                type="range" min="1" max="10" step="0.5"
+                                value={data.evaluatorThreshold ?? 7.0}
+                                onChange={e => update('evaluatorThreshold', Number.parseFloat(e.target.value))}
+                                onKeyDown={stopKeys}
+                                style={{ width: '100%' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                <span>Lenient (1)</span>
+                                <span>Strict (10)</span>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* ── Parallel Branch node info ── */}
+                {isParallel && (
+                    <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        <strong style={{ color: 'var(--text-pri)' }}>⚡ Parallel Fan-out</strong><br />
+                        Connect multiple Agent or Tool nodes to this node's output. They will all run <em>simultaneously</em> using asyncio.gather, then the results are collected as a JSON array.<br /><br />
+                        Connect a <strong>Merge</strong> node downstream to combine the parallel results.
+                    </div>
+                )}
+
+                {/* ── Condition node config ── */}
+                {isCondition && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-condexpr`}>
+                                Condition Expression
+                                <span className="form-label-hint"> (Python-like)</span>
+                            </label>
+                            <textarea
+                                id={`${node.id}-condexpr`}
+                                className="form-textarea"
+                                rows={3}
+                                placeholder={'len(context) > 0\n"error" not in context\nvariables.get("score", 0) > 5'}
+                                value={data.conditionExpr || ''}
+                                onChange={e => update('conditionExpr', e.target.value)}
+                                onKeyDown={stopKeys}
+                                style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                            />
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                                Available: <code>context</code>, <code>variables</code>, <code>len</code>, <code>str</code>, <code>int</code>, <code>float</code>
+                            </div>
+                        </div>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Connect the <span style={{ color: '#22c55e', fontWeight: 600 }}>T (true)</span> handle to the branch that runs when the condition is met,
+                            and the <span style={{ color: '#ef4444', fontWeight: 600 }}>F (false)</span> handle to the alternative.
+                        </div>
+                    </>
+                )}
+
+                {/* ── Set Variable node config ── */}
+                {isSetVariable && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-varname`}>Variable Name</label>
+                            <input
+                                id={`${node.id}-varname`}
+                                type="text" className="form-input"
+                                placeholder="e.g. result"
+                                value={data.variableName || ''}
+                                onChange={e => update('variableName', e.target.value)}
+                                onKeyDown={stopKeys}
+                                style={{ fontFamily: 'monospace' }}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-varval`}>
+                                Value
+                                <span className="form-label-hint"> (blank = upstream output)</span>
+                            </label>
+                            <input
+                                id={`${node.id}-varval`}
+                                type="text" className="form-input"
+                                placeholder="Leave blank to capture upstream output"
+                                value={data.variableValue || ''}
+                                onChange={e => update('variableValue', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Use <code style={{ fontFamily: 'monospace' }}>{'{{'}{data.variableName || 'varname'}{'}}'}</code> in any downstream system prompt or tool param.
+                        </div>
+                    </>
+                )}
+
+                {/* ── Merge node config ── */}
+                {isMerge && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-mergemode`}>Merge Mode</label>
+                            <select
+                                id={`${node.id}-mergemode`}
+                                className="form-select"
+                                value={data.mergeMode || 'concat'}
+                                onChange={e => update('mergeMode', e.target.value)}
+                                onKeyDown={stopKeys}
+                            >
+                                <option value="concat">Concatenate (join with separator)</option>
+                                <option value="array">JSON array of all inputs</option>
+                                <option value="first_non_empty">First non-empty input</option>
+                            </select>
+                        </div>
+                        {(data.mergeMode === 'concat' || !data.mergeMode) && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-mergesep`}>Separator</label>
+                                <input
+                                    id={`${node.id}-mergesep`}
+                                    type="text" className="form-input"
+                                    placeholder="\n\n"
+                                    value={data.mergeSeparator ?? '\n\n'}
+                                    onChange={e => update('mergeSeparator', e.target.value)}
+                                    onKeyDown={stopKeys}
+                                    style={{ fontFamily: 'monospace' }}
+                                />
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ── Loop node config ── */}
+                {isLoop && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-loopvar`}>
+                                Loop Variable
+                                <span className="form-label-hint"> (each item name)</span>
+                            </label>
+                            <input
+                                id={`${node.id}-loopvar`}
+                                type="text" className="form-input"
+                                placeholder="e.g. item"
+                                value={data.loopVar || ''}
+                                onChange={e => update('loopVar', e.target.value)}
+                                onKeyDown={stopKeys}
+                                style={{ fontFamily: 'monospace' }}
+                            />
+                        </div>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            The upstream output should be a JSON array or newline-separated list.
+                            Each item is injected as <code>{'{{'}{data.loopVar || 'item'}{'}}'}</code> in child agent nodes.
+                        </div>
+                    </>
+                )}
+
+                {/* ── Webhook node config ── */}
+                {isWebhook && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            This node triggers the flow via an HTTP POST request. Register the whole flow to get a trigger URL.
+                        </div>
+                        <div className="cp-group">
+                            <button
+                                className="btn btn-primary"
+                                style={{ width: '100%' }}
+                                onClick={handleRegisterWebhook}
+                                disabled={isRegistering}
+                            >
+                                {isRegistering ? 'Registering…' : '🪝 Register Webhook'}
+                            </button>
+                        </div>
+                        {webhookUrl && (
+                            <div className="cp-group">
+                                <label className="form-label">Trigger URL</label>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={webhookUrl}
+                                        readOnly
+                                        style={{ fontFamily: 'monospace', fontSize: 10 }}
+                                    />
+                                    <button className="icon-btn" onClick={handleCopy} title="Copy URL">
+                                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                                    curl -X POST {webhookUrl} -d "your question"
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 {/* ── Shell executor config ── */}
                 {isShell && (
@@ -158,6 +520,7 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
                                     value={data.fsPattern || ''}
                                     onChange={e => update('fsPattern', e.target.value)}
                                     onKeyDown={stopKeys}
+                                />
                             </div>
                         )}
                     </>
@@ -181,55 +544,200 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
                         </div>
                         <div className="cp-group">
                             <label className="form-label" htmlFor={`${node.id}-pbiws`}>Workspace ID</label>
-                            <input
-                                id={`${node.id}-pbiws`}
-                                type="text" className="form-input"
-                                placeholder="..."
-                                value={data.pbiWorkspaceId || ''}
-                                onChange={e => update('pbiWorkspaceId', e.target.value)}
-                                onKeyDown={stopKeys}
-                            />
+                            <input id={`${node.id}-pbiws`} type="text" className="form-input"
+                                placeholder="..." value={data.pbiWorkspaceId || ''}
+                                onChange={e => update('pbiWorkspaceId', e.target.value)} onKeyDown={stopKeys} />
                         </div>
                         <div className="cp-group">
                             <label className="form-label" htmlFor={`${node.id}-pbids`}>Dataset ID</label>
-                            <input
-                                id={`${node.id}-pbids`}
-                                type="text" className="form-input"
-                                placeholder="..."
-                                value={data.pbiDatasetId || ''}
-                                onChange={e => update('pbiDatasetId', e.target.value)}
-                                onKeyDown={stopKeys}
-                            />
+                            <input id={`${node.id}-pbids`} type="text" className="form-input"
+                                placeholder="..." value={data.pbiDatasetId || ''}
+                                onChange={e => update('pbiDatasetId', e.target.value)} onKeyDown={stopKeys} />
                         </div>
                         {(!data.pbiAction || data.pbiAction === 'dax_query') && (
                             <div className="cp-group">
                                 <label className="form-label" htmlFor={`${node.id}-pbiquery`}>DAX Query</label>
-                                <textarea
-                                    id={`${node.id}-pbiquery`}
-                                    className="form-textarea"
-                                    rows={5}
-                                    placeholder="EVALUATE ..."
-                                    value={data.pbiQuery || ''}
-                                    onChange={e => update('pbiQuery', e.target.value)}
-                                    onKeyDown={stopKeys}
-                                />
+                                <textarea id={`${node.id}-pbiquery`} className="form-textarea" rows={5}
+                                    placeholder="EVALUATE ..." value={data.pbiQuery || ''}
+                                    onChange={e => update('pbiQuery', e.target.value)} onKeyDown={stopKeys} />
                             </div>
                         )}
                     </>
                 )}
 
-                {/* ── Standard LLM config (hidden for local nodes) ── */}
+                {/* ── Tool node config ── */}
+                {isTool && (
+                    <>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-toolname`}>Tool Selection</label>
+                            <select
+                                id={`${node.id}-toolname`}
+                                className="form-select"
+                                value={toolName || 'web_search'}
+                                onChange={e => update('toolName', e.target.value)}
+                                onKeyDown={stopKeys}
+                            >
+                                <optgroup label="Search &amp; Network">
+                                    <option value="web_search">🔍 DuckDuckGo Web Search</option>
+                                    <option value="http_request">🌐 HTTP API Request</option>
+                                </optgroup>
+                                <optgroup label="Code &amp; Files">
+                                    <option value="code_runner">⚙️ Python Code Runner</option>
+                                    <option value="file_reader">📁 File Reader</option>
+                                </optgroup>
+                                <optgroup label="Data Processing">
+                                    <option value="json_parse">{'{ }'} JSON Parse</option>
+                                    <option value="csv_reader">📊 CSV Reader</option>
+                                    <option value="text_splitter">✂️ Text Splitter</option>
+                                    <option value="calculator">🧮 Calculator</option>
+                                    <option value="datetime_helper">🕐 Date &amp; Time Helper</option>
+                                </optgroup>
+                                <optgroup label="Text">
+                                    <option value="summarize">📝 Text Summarize</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        {(toolName === 'file_reader' || (!toolName && data.label.toLowerCase().includes('file'))) && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-filename`}>
+                                    Filename
+                                    <span className="form-label-hint"> (Target file to read)</span>
+                                </label>
+                                <div
+                                    className={`file-drop-zone ${isDragging ? 'dragging' : ''}`}
+                                    onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                                    onDragLeave={e => { e.preventDefault(); setIsDragging(false) }}
+                                    onDrop={async e => {
+                                        e.preventDefault()
+                                        setIsDragging(false)
+                                        const file = e.dataTransfer.files[0]
+                                        if (!file) return
+                                        setIsUploading(true)
+                                        const res = await uploadToolFile(file)
+                                        setIsUploading(false)
+                                        if (res && res.filename) {
+                                            update('params', { ...p, filename: res.filename })
+                                        }
+                                    }}
+                                    style={{
+                                        border: isDragging ? '2px dashed var(--accent)' : '1px solid var(--border)',
+                                        borderRadius: '6px', padding: '12px', textAlign: 'center', marginBottom: '8px',
+                                        backgroundColor: isDragging ? 'rgba(var(--accent-rgb), 0.1)' : 'transparent',
+                                        transition: 'all 0.2s ease', cursor: isUploading ? 'wait' : 'default',
+                                    }}
+                                >
+                                    <UploadCloud size={20} style={{ marginBottom: '4px', color: 'var(--text-muted)' }} />
+                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        {isUploading ? 'Uploading...' : 'Drag & drop a file here to upload to sandbox'}
+                                    </div>
+                                </div>
+                                <input
+                                    id={`${node.id}-filename`}
+                                    type="text" className="form-input"
+                                    placeholder="e.g. data.txt (or drag file above)"
+                                    value={p.filename || ''}
+                                    onChange={e => update('params', { ...p, filename: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                />
+                            </div>
+                        )}
+
+                        {toolName === 'calculator' && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-expr`}>Expression</label>
+                                <input
+                                    id={`${node.id}-expr`}
+                                    type="text" className="form-input"
+                                    placeholder="e.g. 2 + 2 * 10"
+                                    value={p.expression || ''}
+                                    onChange={e => update('params', { ...p, expression: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                    style={{ fontFamily: 'monospace' }}
+                                />
+                            </div>
+                        )}
+
+                        {toolName === 'json_parse' && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-query`}>
+                                    Path Query
+                                    <span className="form-label-hint"> (optional, e.g. data.items.0)</span>
+                                </label>
+                                <input
+                                    id={`${node.id}-query`}
+                                    type="text" className="form-input"
+                                    placeholder="data.items.0.name"
+                                    value={p.query || ''}
+                                    onChange={e => update('params', { ...p, query: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                    style={{ fontFamily: 'monospace' }}
+                                />
+                            </div>
+                        )}
+
+                        {toolName === 'text_splitter' && (
+                            <>
+                                <div className="cp-group">
+                                    <label className="form-label">Split Mode</label>
+                                    <select
+                                        className="form-select"
+                                        value={p.mode || 'chars'}
+                                        onChange={e => update('params', { ...p, mode: e.target.value })}
+                                        onKeyDown={stopKeys}
+                                    >
+                                        <option value="chars">Character chunks</option>
+                                        <option value="lines">Lines</option>
+                                        <option value="sentences">Sentences</option>
+                                    </select>
+                                </div>
+                                {(p.mode === 'chars' || !p.mode) && (
+                                    <div className="cp-group">
+                                        <label className="form-label">Chunk Size</label>
+                                        <input type="number" className="form-input"
+                                            min={100} max={8000} step={100}
+                                            value={p.chunk_size || 500}
+                                            onChange={e => update('params', { ...p, chunk_size: Number(e.target.value) })}
+                                            onKeyDown={stopKeys}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {toolName === 'datetime_helper' && (
+                            <div className="cp-group">
+                                <label className="form-label">Action</label>
+                                <select
+                                    className="form-select"
+                                    value={p.action || 'now'}
+                                    onChange={e => update('params', { ...p, action: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                >
+                                    <option value="now">Current date/time</option>
+                                    <option value="format">Format a date string</option>
+                                    <option value="diff">Difference between two dates</option>
+                                </select>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ── Standard LLM config (hidden for local/logic nodes) ── */}
                 {!isLocal && (
                     <>
                         <div className="cp-group">
                             <label className="form-label" htmlFor={`${node.id}-model`}>Model</label>
-                            <select
+                            <input
                                 id={`${node.id}-model`}
-                                className="form-select"
+                                className="form-input"
+                                list={`${node.id}-model-list`}
                                 value={data.model || 'ollama:llama3:8b'}
                                 onChange={e => update('model', e.target.value)}
                                 onKeyDown={stopKeys}
-                            >
+                                placeholder="provider:model_name"
+                            />
+                            <datalist id={`${node.id}-model-list`}>
                                 <option value="ollama:llama3:8b">🦙 llama3:8b</option>
                                 <option value="ollama:llama3.2">🦙 llama3.2</option>
                                 <option value="ollama:mistral">🦙 mistral</option>
@@ -237,16 +745,35 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
                                 <option value="openai:gpt-4o-mini">⚡ GPT-4o mini</option>
                                 <option value="gemini:gemini-2.0-flash">🔷 Gemini 2.0 Flash</option>
                                 <option value="lmstudio:local-model">🖥️ LM Studio (local)</option>
-                            </select>
+                            </datalist>
                         </div>
 
                         <div className="cp-group">
-                            <label className="form-label" htmlFor={`${node.id}-prompt`}>System Prompt</label>
+                            <label className="form-label" htmlFor={`${node.id}-apikey`}>
+                                API Key Override
+                                <span className="form-label-hint"> (Optional)</span>
+                            </label>
+                            <input
+                                id={`${node.id}-apikey`}
+                                type="password"
+                                className="form-input"
+                                placeholder="Leave blank to use .env key"
+                                value={data.apiKey || ''}
+                                onChange={e => update('apiKey', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-prompt`}>
+                                System Prompt
+                                <span className="form-label-hint"> (use {'{{var}}'} for variables)</span>
+                            </label>
                             <textarea
                                 id={`${node.id}-prompt`}
                                 className="form-textarea"
                                 rows={5}
-                                placeholder="You are a helpful assistant…"
+                                placeholder="You are a helpful assistant… Use {{name}} for dynamic values."
                                 value={data.systemPrompt || ''}
                                 onChange={e => update('systemPrompt', e.target.value)}
                                 onKeyDown={stopKeys}
@@ -283,7 +810,7 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
                                 value={data.toolsEnabled ?? true} onChange={v => update('toolsEnabled', v)}
                             />
                             <ToggleRow
-                                name="Streaming" desc="Stream output tokens"
+                                name="Streaming" desc="Stream output tokens incrementally"
                                 value={data.streaming ?? false} onChange={v => update('streaming', v)}
                             />
                         </div>
