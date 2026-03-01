@@ -240,7 +240,7 @@
     align-content: center;
     gap: 5px 6px;
     /* Fixed width so the grid column is deterministic */
-    width: 536px;
+    width: 600px;
 }
 
 /*
