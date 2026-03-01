@@ -166,18 +166,23 @@ export default function ChatPreview({ flow, model, sessionId = 'default', onClos
     const bottomRef = useRef(null)
     const abortRef = useRef(null)
     const inputRef = useRef(null)
+    const initRef = useRef(false)
 
     useEffect(() => {
         if (!flow?.nodes) return
         const agentNode = flow.nodes.find(n => n.data?.nodeType === 'agent')
         const name = agentNode?.data?.label || 'AI Agent'
         setAgentName(name)
-        setMessages([{
-            id: 'welcome',
-            role: 'agent',
-            content: `Hi! I'm your **${name}**. This flow has ${flow.nodes.length} nodes ready.\n\nWhat would you like to explore?`,
-        }])
-        inputRef.current?.focus()
+
+        if (!initRef.current) {
+            setMessages([{
+                id: 'welcome',
+                role: 'agent',
+                content: `Hi! I'm your **${name}**. This flow has ${flow.nodes.length} nodes ready.\n\nWhat would you like to explore?`,
+            }])
+            inputRef.current?.focus()
+            initRef.current = true
+        }
     }, [flow])
 
     useEffect(() => {
