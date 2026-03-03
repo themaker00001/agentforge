@@ -53,6 +53,16 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 | `file_reader` | Read files from a sandboxed workspace. *Supports drag-and-drop file configuration in the UI.* |
 | `summarize` | Condense and distill long text |
 
+### Custom Tool Plugins (No-Code Extensibility)
+- Register your own tools at runtime via API (no backend code edits)
+- Support for:
+  - **HTTP adapters** (templated URL/headers/body)
+  - **Script adapters** (sandboxed bash/python commands with parameter templating)
+- Endpoints:
+  - `GET /tools/custom`
+  - `POST /tools/custom`
+  - `DELETE /tools/custom/{tool_name}`
+
 ### Node Types
 - **Input** — entry point; passes user message into the workflow
 - **Agent** — LLM reasoning node with system prompt, temperature, and token controls

@@ -8,6 +8,29 @@ from app.models.schema import Node
 from app.services import memory as mem_svc
 from app.services import knowledge as know_svc
 
+# Models that support vision / image content
+_VISION_PATTERNS = (
+    "gpt-4o",
+    "gpt-4-turbo",
+    "gpt-4-vision",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5",
+)
+
+
+def _is_vision_capable(model_str: str) -> bool:
+    lower = model_str.lower()
+    return any(p in lower for p in _VISION_PATTERNS)
+
+
+def _extract_image_data_url(text: str) -> str | None:
+    """Return the first data:image/... base64 URL found in text, or None."""
+    import re
+    m = re.search(r'(data:image/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+)', text)
+    return m.group(1) if m else None
+
 
 def _build_messages(node: Node, user_input: str, node_outputs: dict, session_id: str,
                     context: str | None, model_override: str | None) -> tuple[list[dict], object]:
@@ -27,7 +50,13 @@ def _build_messages(node: Node, user_input: str, node_outputs: dict, session_id:
     )
     if knowledge_ctx:
         system_content += f"\n\nRelevant knowledge:\n{knowledge_ctx}"
-    if context and context != user_input:
+
+    # Check for an image data URL in context
+    image_url = _extract_image_data_url(context or "")
+    vision_ok = image_url and _is_vision_capable(model_str)
+
+    if context and context != user_input and not vision_ok:
+        # Plain-text context injection into system prompt
         system_content += f"\n\nContext from previous steps:\n{context}"
 
     messages: list[dict] = [{"role": "system", "content": system_content}]
@@ -35,7 +64,16 @@ def _build_messages(node: Node, user_input: str, node_outputs: dict, session_id:
     if data.memory:
         messages = mem_svc.inject_context(session_id, messages)
 
-    messages.append({"role": "user", "content": user_input or context})
+    if vision_ok:
+        # Build multimodal user message for vision-capable models
+        text_part = user_input or "Please describe or answer based on the image."
+        user_content: list[dict] = [
+            {"type": "text", "text": text_part},
+            {"type": "image_url", "image_url": {"url": image_url, "detail": "auto"}},
+        ]
+        messages.append({"role": "user", "content": user_content})
+    else:
+        messages.append({"role": "user", "content": user_input or context})
 
     return messages, llm
 

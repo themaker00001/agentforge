@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +23,7 @@ class NodeType(str, Enum):
     evaluator    = "evaluator"     # AI quality gate — routes pass/fail by score
     parallel     = "parallel"      # Fan-out: run child branches concurrently
     note         = "note"          # Visual sticky note (no execution)
+    media_input  = "media_input"   # Upload image / audio / PDF into the pipeline
 
 
 class NodeData(BaseModel):
@@ -74,6 +75,10 @@ class NodeData(BaseModel):
     # Note / sticky-note fields
     noteContent: Optional[str] = None
     noteColor:   Optional[str] = "#fef3c7"
+    # Media input fields
+    mediaType:   Optional[str] = None   # "image" | "audio" | "pdf"
+    mediaFileId: Optional[str] = None   # file_id from /media/upload
+    mediaUrl:    Optional[str] = None   # optional URL fallback
 
 
 class NodePosition(BaseModel):
@@ -149,6 +154,22 @@ class ToolExecuteRequest(BaseModel):
     params: dict[str, Any] = {}
 
 
+class CustomToolDefinition(BaseModel):
+    name: str = Field(min_length=2, max_length=64)
+    kind: Literal["http", "script"]
+    description: Optional[str] = None
+    timeout: int = Field(default=20, ge=1, le=180)
+    # HTTP adapter config
+    method: Optional[str] = "GET"
+    url: Optional[str] = None
+    headers: Optional[dict[str, str]] = None
+    body: Optional[Any] = None
+    # Script adapter config
+    command: Optional[str] = None
+    workingDir: Optional[str] = None
+    language: Optional[Literal["bash", "python"]] = "bash"
+
+
 # ── Log events (SSE payloads) ─────────────────────────────────────────────────
 
 class LogType(str, Enum):
@@ -203,3 +224,19 @@ class DeployedAPI(BaseModel):
 class DeployInvokeRequest(BaseModel):
     input: str = ""
 
+
+# ── Run Records ───────────────────────────────────────────────────────────────
+
+class RunSummary(BaseModel):
+    run_id:         str
+    created_at:     str
+    user_input:     str
+    model:          str
+    total_cost_usd: float
+    duration_ms:    int
+    node_count:     int
+
+
+class RunRecord(RunSummary):
+    flow_json:   str
+    events_json: str

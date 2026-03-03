@@ -75,14 +75,19 @@ export async function executeFlow(flow, userInput, model, sessionId = 'default',
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
+    let buffer = ''
 
     while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const text = decoder.decode(value)
-        const lines = text.split('\n')
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
+
+        buffer += decoder.decode(value, { stream: true })
+        const parts = buffer.split('\n\n')
+        buffer = parts.pop() ?? ''
+
+        for (const part of parts) {
+            for (const line of part.split('\n')) {
+                if (!line.startsWith('data: ')) continue
                 const payload = line.slice(6).trim()
                 if (payload === '[DONE]') return
                 try {
@@ -122,6 +127,39 @@ export async function executeTool(tool, params = {}) {
     } catch (err) {
         return { error: err.message }
     }
+}
+
+export async function listCustomTools() {
+    try {
+        const res = await fetch(`${BASE}/tools/custom`)
+        if (!res.ok) return []
+        const data = await res.json()
+        return data.tools || []
+    } catch {
+        return []
+    }
+}
+
+export async function saveCustomTool(toolDef) {
+    const res = await fetch(`${BASE}/tools/custom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toolDef),
+    })
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || `Save custom tool failed: HTTP ${res.status}`)
+    }
+    return await res.json()
+}
+
+export async function deleteCustomTool(toolName) {
+    const res = await fetch(`${BASE}/tools/custom/${encodeURIComponent(toolName)}`, { method: 'DELETE' })
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || `Delete custom tool failed: HTTP ${res.status}`)
+    }
+    return await res.json()
 }
 
 export async function uploadToolFile(file) {
@@ -229,3 +267,46 @@ export async function undeployFlow(slug) {
     return res.ok
 }
 
+// ── Run History ───────────────────────────────────────────────────────────────
+
+export async function listRuns(limit = 50) {
+    try {
+        const res = await fetch(`${BASE}/runs?limit=${limit}`)
+        if (!res.ok) return []
+        return await res.json()
+    } catch {
+        return []
+    }
+}
+
+export async function getRun(runId) {
+    const res = await fetch(`${BASE}/runs/${runId}`)
+    if (!res.ok) throw new Error(`Run not found: HTTP ${res.status}`)
+    return await res.json()
+}
+
+export async function deleteRun(runId) {
+    const res = await fetch(`${BASE}/runs/${runId}`, { method: 'DELETE' })
+    return res.ok
+}
+
+// ── Media Upload ──────────────────────────────────────────────────────────────
+
+export async function uploadMedia(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+        const res = await fetch(`${BASE}/media/upload`, {
+            method: 'POST',
+            body: formData,
+        })
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error(err.detail || `HTTP ${res.status}`)
+        }
+        return await res.json()
+    } catch (err) {
+        console.error('Media upload failed:', err)
+        throw err
+    }
+}

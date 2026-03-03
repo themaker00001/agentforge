@@ -1,9 +1,113 @@
 import { useState } from 'react'
 import { X, UploadCloud, Copy, Check } from 'lucide-react'
-import { uploadToolFile } from '../services/api'
+import { uploadToolFile, uploadMedia } from '../services/api'
 import './ConfigPanel.css'
 
 const BASE = 'http://localhost:8000'
+
+/* ── MediaUploadWidget ────────────────────────────────────────────────────── */
+function MediaUploadWidget({ mediaType, onUploaded }) {
+    const [uploading, setUploading] = useState(false)
+    const [fileName, setFileName] = useState('')
+    const [error, setError] = useState('')
+
+    const ACCEPT = {
+        image: 'image/png,image/jpeg,image/gif,image/webp',
+        audio: 'audio/mpeg,audio/wav,audio/mp4,audio/ogg',
+        pdf:   'application/pdf',
+    }
+
+    const handleFile = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setError('')
+        setUploading(true)
+        try {
+            const meta = await uploadMedia(file)
+            setFileName(file.name)
+            onUploaded(meta.file_id, file.name)
+        } catch (err) {
+            setError(err.message || 'Upload failed')
+        } finally {
+            setUploading(false)
+            e.target.value = ''
+        }
+    }
+
+    return (
+        <div className="cp-group">
+            <label className="form-label">Upload {mediaType?.toUpperCase() || 'File'}</label>
+            <label
+                style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                    borderRadius: 6, border: '1px dashed var(--border)', cursor: 'pointer',
+                    background: 'var(--bg-raised)', fontSize: 11, color: 'var(--text-secondary)',
+                    transition: 'border-color 0.15s',
+                }}
+            >
+                <UploadCloud size={14} />
+                {uploading ? 'Uploading…' : fileName || 'Click to choose file'}
+                <input
+                    type="file"
+                    accept={ACCEPT[mediaType] || '*'}
+                    style={{ display: 'none' }}
+                    onChange={handleFile}
+                    disabled={uploading}
+                />
+            </label>
+            {error && <div style={{ color: 'var(--red)', fontSize: 10, marginTop: 3 }}>{error}</div>}
+        </div>
+    )
+}
+
+/* ── MediaInputConfig ─────────────────────────────────────────────────────── */
+function MediaInputConfig({ data, update, nodeId }) {
+    return (
+        <>
+            <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Upload an image, audio file, or PDF to pass into downstream agent nodes.
+                Images work with GPT-4o and Gemini 1.5+ (vision-capable models).
+            </div>
+
+            <div className="cp-group">
+                <label className="form-label">Media Type</label>
+                <select
+                    className="form-select"
+                    value={data.mediaType || 'image'}
+                    onChange={e => update('mediaType', e.target.value)}
+                >
+                    <option value="image">🖼️ Image (PNG/JPEG/WebP/GIF)</option>
+                    <option value="audio">🎵 Audio (MP3/WAV/M4A/OGG)</option>
+                    <option value="pdf">📄 PDF Document</option>
+                </select>
+            </div>
+
+            <MediaUploadWidget
+                mediaType={data.mediaType || 'image'}
+                onUploaded={(fileId, filename) => {
+                    update('mediaFileId', fileId)
+                }}
+            />
+
+            {data.mediaFileId && (
+                <div style={{ fontSize: 10, color: 'var(--green)', marginTop: -4, marginBottom: 4 }}>
+                    ✓ File uploaded (id: {data.mediaFileId.slice(0, 8)}…)
+                </div>
+            )}
+
+            <div className="cp-group">
+                <label className="form-label">URL Fallback (optional)</label>
+                <input
+                    className="form-input"
+                    placeholder="https://example.com/image.png"
+                    value={data.mediaUrl || ''}
+                    onChange={e => update('mediaUrl', e.target.value)}
+                />
+                <div className="form-hint">Used only if no file is uploaded above</div>
+            </div>
+        </>
+    )
+}
 
 /* Stop ALL keyboard events from bubbling to React Flow */
 const stopKeys = (e) => {
@@ -11,7 +115,7 @@ const stopKeys = (e) => {
     e.nativeEvent?.stopImmediatePropagation()
 }
 
-export default function ConfigPanel({ node, onClose, onUpdate }) {
+export default function ConfigPanel({ node, flow, model, sessionId = 'default', onClose, onUpdate }) {
     // All hooks MUST be called before any conditional return
     const [isDragging, setIsDragging] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
@@ -26,6 +130,7 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
         input: '💬', agent: '🤖', tool: '🔧', knowledge: '📚', output: '📤',
         shell_exec: '💻', file_system: '📁', powerbi: '📊',
         condition: '🔀', set_variable: '📌', merge: '🔗', loop: '🔁', webhook: '🪝',
+        media_input: '🖼️',
     }
 
     const update = (key, value) => onUpdate(node.id, { ...data, [key]: value })
@@ -45,11 +150,12 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
     const isEvaluator   = data.nodeType === 'evaluator'
     const isParallel    = data.nodeType === 'parallel'
     const isNote        = data.nodeType === 'note'
+    const isMediaInput  = data.nodeType === 'media_input'
 
     // isLocal = nodes that don't show the standard LLM config block
     const isLocal = isShell || isFS || isPowerBI || isTool || isInput || isKnowledge
                  || isCondition || isSetVariable || isMerge || isLoop || isWebhook
-                 || isParallel || isNote
+                 || isParallel || isNote || isMediaInput
 
     const p = data.params || {}
     const toolName = data.toolName || ''
@@ -57,15 +163,17 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
     const handleRegisterWebhook = async () => {
         setIsRegistering(true)
         try {
-            // We'll register with the current flow — but we don't have full flow here.
-            // Instead we just POST to register and show the URL.
+            if (!flow?.nodes?.length) {
+                setWebhookUrl('Error: create a flow before registering a webhook')
+                return
+            }
             const res = await fetch(`${BASE}/webhook/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    flow: { nodes: [], edges: [] },
-                    model: 'ollama:llama3:8b',
-                    sessionId: 'default',
+                    flow,
+                    model: model || 'ollama:llama3:8b',
+                    sessionId,
                 }),
             })
             const data = await res.json()
@@ -94,6 +202,11 @@ export default function ConfigPanel({ node, onClose, onUpdate }) {
             </div>
 
             <div className="cp-body">
+
+                {/* ── Media Input config ── */}
+                {isMediaInput && (
+                    <MediaInputConfig data={data} update={update} nodeId={node.id} />
+                )}
 
                 {/* ── Sticky Note config ── */}
                 {isNote && (

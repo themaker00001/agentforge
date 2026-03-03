@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare, Clock, Trash2, X, Save, Upload, Download, FolderOpen, LayoutTemplate, Rocket, Pencil } from 'lucide-react'
+import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare, Clock, Trash2, X, Save, Upload, Download, FolderOpen, LayoutTemplate, Rocket, Pencil, History } from 'lucide-react'
 import { getModels, checkBackend, listTasks, deleteTask } from '../services/api'
 import './TopBar.css'
 
@@ -170,7 +170,7 @@ export default function TopBar({
     selectedModel, onModelChange, isGenerating, isRunning, hasFlow,
     userInput, onUserInputChange,
     onSave, onLoad, onExport, onImport, listSavedFlows,
-    onShowTemplates, onDeploy,
+    onShowTemplates, onDeploy, onShowRuns,
 }) {
     const [prompt, setPrompt] = useState('')
     const [models, setModels] = useState(FALLBACK_MODELS)
@@ -311,6 +311,15 @@ export default function TopBar({
                 >
                     <LayoutTemplate size={13} />
                     Templates
+                </button>
+
+                <button
+                    className="btn btn-history"
+                    onClick={onShowRuns}
+                    title="View run history and replay past runs"
+                >
+                    <History size={13} />
+                    History
                 </button>
 
                 <button

@@ -6,11 +6,19 @@ import FlowCanvas from './components/FlowCanvas'
 import ConfigPanel from './components/ConfigPanel'
 import DebugConsole from './components/DebugConsole'
 import ChatPreview from './components/ChatPreview'
-import { generateFlow, executeFlow, submitBackgroundTask } from './services/api'
+import { generateFlow, executeFlow, submitBackgroundTask, listRuns, getRun } from './services/api'
 import { saveFlow, loadFlow, listSavedFlows, exportFlow, importFlowFromJSON } from './services/storage'
 import TemplatesPanel from './components/TemplatesPanel'
 import DeployPanel from './components/DeployPanel'
+import RunsPanel from './components/RunsPanel'
 import './App.css'
+
+function createSessionId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID()
+    }
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+}
 
 /* ── Edge helper ─────────────────────────────────────────────────────────── */
 function makeEdge(source, target, sourceHandle) {
@@ -63,6 +71,8 @@ export default function App() {
     const [userInput, setUserInput] = useState('')
     const [showTemplates, setShowTemplates] = useState(false)
     const [showDeploy, setShowDeploy] = useState(false)
+    const [showRuns, setShowRuns] = useState(false)
+    const [sessionId, setSessionId] = useState(() => createSessionId())
 
     const consoleRef = useRef(null)
     const abortRef = useRef(null)
@@ -121,6 +131,10 @@ export default function App() {
                 // Note node
                 noteContent: n.data.noteContent || null,
                 noteColor: n.data.noteColor || '#fef3c7',
+                // Media input node
+                mediaType:   n.data.mediaType   || null,
+                mediaFileId: n.data.mediaFileId || null,
+                mediaUrl:    n.data.mediaUrl    || null,
             },
         })),
         edges: edges.map(e => ({
@@ -172,15 +186,20 @@ export default function App() {
                 buildFlowPayload(),
                 userInput.trim(),
                 selectedModel,
-                'default',
+                sessionId,
                 (event) => {
                     log(event.type, event.message, event.data)
                     if (event.nodeId) {
                         const newStatus = STATUS_MAP[event.type]
-                        if (newStatus) {
-                            setNodes(nds => nds.map(n =>
-                                n.id === event.nodeId ? { ...n, data: { ...n.data, status: newStatus } } : n
-                            ))
+                        const metrics   = event.data?.metrics
+                        if (newStatus || metrics) {
+                            setNodes(nds => nds.map(n => {
+                                if (n.id !== event.nodeId) return n
+                                const extra = {}
+                                if (newStatus) extra.status  = newStatus
+                                if (metrics)   extra.metrics = metrics
+                                return { ...n, data: { ...n.data, ...extra } }
+                            }))
                         }
                     }
                 },
@@ -191,7 +210,7 @@ export default function App() {
         } finally {
             setIsRunning(false)
         }
-    }, [isRunning, selectedModel, setNodes, log, buildFlowPayload, userInput])
+    }, [isRunning, selectedModel, setNodes, log, buildFlowPayload, userInput, sessionId])
 
     /* ── Run in Background ───────────────────────────────────────────────────── */
     const handleRunBackground = useCallback(async () => {
@@ -242,6 +261,31 @@ export default function App() {
         log('ok', `Imported "${result.name}" — ${result.nodes.length} nodes`)
     }, [setNodes, setEdges, syncNodes, log])
 
+    /* ── Replay / Reset ──────────────────────────────────────────────────────── */
+    const handleReplayEvent = useCallback((event) => {
+        log(event.type, event.message, event.data)
+        if (event.nodeId) {
+            const newStatus = STATUS_MAP[event.type]
+            const metrics   = event.data?.metrics
+            if (newStatus || metrics) {
+                setNodes(nds => nds.map(n => {
+                    if (n.id !== event.nodeId) return n
+                    const extra = {}
+                    if (newStatus) extra.status  = newStatus
+                    if (metrics)   extra.metrics = metrics
+                    return { ...n, data: { ...n.data, ...extra } }
+                }))
+            }
+        }
+    }, [log, setNodes])
+
+    const handleResetNodes = useCallback(() => {
+        setNodes(nds => nds.map(n => ({
+            ...n,
+            data: { ...n.data, status: 'idle', metrics: undefined },
+        })))
+    }, [setNodes])
+
     /* ── Node click / update ─────────────────────────────────────────────────── */
     const handleNodeClick = useCallback((node) => setSelectedNode(node), [])
 
@@ -278,6 +322,7 @@ export default function App() {
                 listSavedFlows={listSavedFlows}
                 onShowTemplates={() => setShowTemplates(true)}
                 onDeploy={() => setShowDeploy(true)}
+                onShowRuns={() => setShowRuns(true)}
             />
 
             <div className="app-body">
@@ -306,6 +351,9 @@ export default function App() {
                 {selectedNode && (
                     <ConfigPanel
                         node={selectedNode}
+                        flow={buildFlowPayload()}
+                        model={selectedModel}
+                        sessionId={sessionId}
                         onClose={() => setSelectedNode(null)}
                         onUpdate={handleNodeUpdate}
                     />
@@ -333,11 +381,20 @@ export default function App() {
                 />
             )}
 
+            {showRuns && (
+                <RunsPanel
+                    onClose={() => setShowRuns(false)}
+                    onReplayEvent={handleReplayEvent}
+                    onResetNodes={handleResetNodes}
+                />
+            )}
+
             {chatOpen && (
                 <ChatPreview
                     flow={buildFlowPayload()}
                     model={selectedModel}
-                    sessionId="default"
+                    sessionId={sessionId}
+                    onNewSession={() => setSessionId(createSessionId())}
                     onClose={() => setChatOpen(false)}
                 />
             )}

@@ -61,9 +61,10 @@ const LIBRARY = [
     {
         section: 'Inputs / Triggers',
         items: [
-            { type: 'input',   label: 'Text Input',  icon: '💬' },
-            { type: 'input',   label: 'File Input',  icon: '📎' },
-            { type: 'webhook', label: 'Webhook',      icon: '🪝', badge: 'NEW' },
+            { type: 'input',       label: 'Text Input',  icon: '💬' },
+            { type: 'input',       label: 'File Input',  icon: '📎' },
+            { type: 'webhook',     label: 'Webhook',      icon: '🪝', badge: 'NEW' },
+            { type: 'media_input', label: 'Media Input',  icon: '🖼️', badge: 'NEW' },
         ],
     },
     {

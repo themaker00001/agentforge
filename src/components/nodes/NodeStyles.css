@@ -320,6 +320,35 @@
     color: var(--red);
 }
 
+/* ── Cost / Latency Heatmap Metrics Bar ── */
+.fn-metrics {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.2px;
+}
+
+.fn-metric-cost {
+    font-weight: 700;
+    min-width: 56px;
+}
+
+.fn-metric-latency {
+    color: #94a3b8;
+    flex: 1;
+    text-align: center;
+}
+
+.fn-metric-tokens {
+    color: #64748b;
+}
+
 /* ── Streaming cursor blink ── */
 .cursor-blink {
     display: inline-block;

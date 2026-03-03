@@ -11,9 +11,9 @@ load_dotenv()
 
 # Import routers
 from app.routes import flow, execute, models, knowledge, tools, chat, webhook, deploy
-from app.routes import agent_tasks
+from app.routes import agent_tasks, runs, media
 from app.services import background_agent as bg_svc
-from app.services import deploy_store
+from app.services import deploy_store, run_store
 
 
 @asynccontextmanager
@@ -32,8 +32,9 @@ async def lifespan(app: FastAPI):
     except Exception:
         print("⚠️  Ollama not running — start with: ollama serve")
 
-    # Init SQLite DB for deployed flows
+    # Init SQLite DBs
     deploy_store.init_db()
+    run_store.init_db()
 
     # Start persistent background agent worker
     worker_task = asyncio.create_task(bg_svc.worker_loop())
@@ -75,6 +76,8 @@ app.include_router(tools.router,        tags=["Tools"])
 app.include_router(agent_tasks.router)  # tags set in router definition
 app.include_router(webhook.router,      tags=["Webhook"])
 app.include_router(deploy.router)       # tags set in router definition
+app.include_router(runs.router)
+app.include_router(media.router)
 
 
 @app.get("/")

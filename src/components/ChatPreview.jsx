@@ -156,7 +156,7 @@ function Message({ msg }) {
 const PARTIAL_ID = '__streaming_partial__'
 
 /* ── Main component ───────────────────────────────────────────────────────── */
-export default function ChatPreview({ flow, model, sessionId = 'default', onClose }) {
+export default function ChatPreview({ flow, model, sessionId = 'default', onClose, onNewSession }) {
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
@@ -281,10 +281,11 @@ export default function ChatPreview({ flow, model, sessionId = 'default', onClos
 
     const clearChat = () => {
         abortRef.current?.abort()
+        onNewSession?.()
         setMessages([{
             id: 'welcome',
             role: 'agent',
-            content: 'Chat cleared — ask me anything!',
+            content: 'Chat cleared and started as a new session — ask me anything!',
         }])
         setIsStreaming(false)
         setCurrentLog('')

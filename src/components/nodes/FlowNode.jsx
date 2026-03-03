@@ -20,6 +20,14 @@ const NODE_CONFIG = {
     evaluator:    { icon: '🎯', label: 'Evaluator',    color: '#f59e0b' },
     parallel:     { icon: '⚡', label: 'Parallel',     color: '#06b6d4' },
     note:         { icon: '📝', label: 'Note',         color: '#78716c' },
+    media_input:  { icon: '🖼️', label: 'Media Input',  color: '#8b5cf6' },
+}
+
+function getCostColor(costUsd) {
+    if (!costUsd || costUsd === 0) return '#6b7280'      // grey — free
+    if (costUsd < 0.0001)          return '#22c55e'      // green — cheap
+    if (costUsd < 0.001)           return '#f59e0b'      // amber — moderate
+    return '#ef4444'                                      // red — expensive
 }
 
 function StatusDot({ status }) {
@@ -55,6 +63,7 @@ function getNodeBadge(data) {
         case 'webhook':      return 'HTTP Trigger'
         case 'parallel':     return 'Fan-out'
         case 'note':         return ''
+        case 'media_input':  return data.mediaType?.toUpperCase() || 'Media'
         default: return ''
     }
 }
@@ -86,12 +95,13 @@ export function FlowNode({ data, selected }) {
     }
 
     const cfg = NODE_CONFIG[data.nodeType] || NODE_CONFIG.agent
-    const isRunning   = data.status === 'running'
-    const badge       = getNodeBadge(data)
-    const isCondition = data.nodeType === 'condition'
-    const isEvaluator = data.nodeType === 'evaluator'
-    const isParallel  = data.nodeType === 'parallel'
-    const hasDualOut  = isCondition || isEvaluator
+    const isRunning    = data.status === 'running'
+    const badge        = getNodeBadge(data)
+    const isCondition  = data.nodeType === 'condition'
+    const isEvaluator  = data.nodeType === 'evaluator'
+    const isParallel   = data.nodeType === 'parallel'
+    const isMediaInput = data.nodeType === 'media_input'
+    const hasDualOut   = isCondition || isEvaluator
 
     // Dual-output handle labels
     const dualLabels = isEvaluator
@@ -103,8 +113,8 @@ export function FlowNode({ data, selected }) {
             className={`flow-node fn-${data.nodeType}${selected ? ' selected' : ''}${isRunning ? ' running' : ''}`}
             style={{ '--node-color': cfg.color }}
         >
-            {/* Input handle */}
-            {data.nodeType !== 'input' && data.nodeType !== 'webhook' && !isParallel && (
+            {/* Input handle — media_input is source-only, no target */}
+            {data.nodeType !== 'input' && data.nodeType !== 'webhook' && !isParallel && !isMediaInput && (
                 <Handle type="target" position={Position.Left} className="fn-handle fn-handle-in" />
             )}
             {/* Parallel can have multiple incoming for fan-in at merge, one fan-out */}
@@ -138,6 +148,22 @@ export function FlowNode({ data, selected }) {
                     <span className="fn-model">{data.debatePersonas.length} voices</span>
                 )}
             </div>
+
+            {/* Cost / latency heatmap metrics bar */}
+            {data.metrics && (
+                <div className="fn-metrics">
+                    <span
+                        className="fn-metric-cost"
+                        style={{ color: getCostColor(data.metrics.cost_usd) }}
+                    >
+                        ${data.metrics.cost_usd?.toFixed(5) ?? '0.00000'}
+                    </span>
+                    <span className="fn-metric-latency">{data.metrics.latency_ms}ms</span>
+                    <span className="fn-metric-tokens">
+                        {data.metrics.tokens_in}→{data.metrics.tokens_out} tok
+                    </span>
+                </div>
+            )}
 
             {/* Output handles */}
             {hasDualOut ? (

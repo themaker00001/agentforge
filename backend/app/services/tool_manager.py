@@ -5,6 +5,7 @@ Each tool is a simple async function: (params: dict) → str
 
 import asyncio
 import csv
+import difflib
 import httpx
 import io
 import json
@@ -17,9 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote_plus
 from ddgs import DDGS
+from app.services import shell_executor as shell_svc
 
 SANDBOX_DIR = Path("/tmp/agentforge")
 SANDBOX_DIR.mkdir(exist_ok=True)
+CUSTOM_TOOLS_FILE = Path.home() / ".agentforge" / "custom_tools.json"
 
 
 # ── Tool implementations ──────────────────────────────────────────────────────
@@ -257,17 +260,318 @@ TOOLS: dict[str, callable] = {
     "datetime_helper": _datetime_helper,
 }
 
+_TOOL_CAPABILITIES: dict[str, dict] = {
+    "web_search": {"category": "search_network", "purpose": "Search the web for recent information"},
+    "http_request": {"category": "search_network", "purpose": "Call external HTTP APIs"},
+    "code_runner": {"category": "code_files", "purpose": "Run Python snippets in sandbox"},
+    "file_reader": {"category": "code_files", "purpose": "Read uploaded files from sandbox"},
+    "summarize": {"category": "text", "purpose": "Summarize long text"},
+    "json_parse": {"category": "data", "purpose": "Parse/query JSON payloads"},
+    "csv_reader": {"category": "data", "purpose": "Read CSV text into structured JSON"},
+    "text_splitter": {"category": "data", "purpose": "Split text into chunks"},
+    "calculator": {"category": "data", "purpose": "Evaluate math expressions safely"},
+    "datetime_helper": {"category": "data", "purpose": "Work with dates/times and diffs"},
+}
+
+
+def _safe_format(text: str, params: dict) -> str:
+    class _SafeMap(dict):
+        def __missing__(self, key):
+            return "{" + key + "}"
+    try:
+        return text.format_map(_SafeMap(params or {}))
+    except Exception:
+        return text
+
+
+def _render_value(value, params: dict):
+    if isinstance(value, str):
+        return _safe_format(value, params)
+    if isinstance(value, dict):
+        return {k: _render_value(v, params) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_render_value(v, params) for v in value]
+    return value
+
+
+def _load_custom_tools() -> dict[str, dict]:
+    CUSTOM_TOOLS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not CUSTOM_TOOLS_FILE.exists():
+        return {}
+    try:
+        data = json.loads(CUSTOM_TOOLS_FILE.read_text())
+        if isinstance(data, dict):
+            return data
+        return {}
+    except Exception:
+        return {}
+
+
+def _save_custom_tools(data: dict[str, dict]) -> None:
+    CUSTOM_TOOLS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CUSTOM_TOOLS_FILE.write_text(json.dumps(data, indent=2))
+
+
+def list_custom_tools() -> list[dict]:
+    tools = _load_custom_tools()
+    return [tools[name] for name in sorted(tools.keys())]
+
+
+def upsert_custom_tool(defn: dict) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    raw_name = (defn.get("name") or "").strip()
+    name = _norm(raw_name)
+    if len(name) < 2:
+        raise ValueError("Tool name must be at least 2 characters.")
+    if name in TOOLS:
+        raise ValueError(f"'{name}' conflicts with a built-in tool name.")
+
+    kind = (defn.get("kind") or "").strip().lower()
+    if kind not in {"http", "script"}:
+        raise ValueError("kind must be 'http' or 'script'.")
+
+    timeout = int(defn.get("timeout") or 20)
+    timeout = max(1, min(timeout, 180))
+
+    record = {
+        "name": name,
+        "kind": kind,
+        "description": (defn.get("description") or "").strip(),
+        "timeout": timeout,
+        "updated_at": now,
+    }
+
+    if kind == "http":
+        url = (defn.get("url") or "").strip()
+        if not url:
+            raise ValueError("HTTP tool requires a non-empty 'url'.")
+        method = (defn.get("method") or "GET").strip().upper()
+        if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+            raise ValueError("HTTP tool method must be one of GET/POST/PUT/PATCH/DELETE.")
+        record.update({
+            "method": method,
+            "url": url,
+            "headers": defn.get("headers") or {},
+            "body": defn.get("body"),
+        })
+
+    if kind == "script":
+        command = (defn.get("command") or "").strip()
+        if not command:
+            raise ValueError("Script tool requires a non-empty 'command'.")
+        language = (defn.get("language") or "bash").strip().lower()
+        if language not in {"bash", "python"}:
+            raise ValueError("Script tool language must be 'bash' or 'python'.")
+        record.update({
+            "command": command,
+            "language": language,
+            "workingDir": defn.get("workingDir"),
+        })
+
+    tools = _load_custom_tools()
+    if name in tools and tools[name].get("created_at"):
+        record["created_at"] = tools[name]["created_at"]
+    else:
+        record["created_at"] = now
+    tools[name] = record
+    _save_custom_tools(tools)
+    return record
+
+
+def delete_custom_tool(name: str) -> bool:
+    normalized = _norm(name)
+    tools = _load_custom_tools()
+    if normalized not in tools:
+        return False
+    del tools[normalized]
+    _save_custom_tools(tools)
+    return True
+
+
+async def _run_custom_tool(tool: dict, params: dict) -> str:
+    kind = tool.get("kind")
+    timeout = int(tool.get("timeout") or 20)
+    timeout = max(1, min(timeout, 180))
+
+    if kind == "http":
+        method = (tool.get("method") or "GET").upper()
+        url = _render_value(tool.get("url") or "", params)
+        headers = _render_value(tool.get("headers") or {}, params)
+        body_template = tool.get("body")
+        body = _render_value(body_template, params) if body_template is not None else params.get("body")
+        if not url:
+            return "Custom HTTP tool misconfigured: missing URL."
+        try:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+                if method in {"POST", "PUT", "PATCH", "DELETE"}:
+                    resp = await client.request(method, url, headers=headers, json=body)
+                else:
+                    resp = await client.request(method, url, headers=headers, params=params)
+                return f"[HTTP {resp.status_code}] {resp.text[:3000]}"
+        except Exception as exc:
+            return f"[Custom HTTP tool error] {exc}"
+
+    if kind == "script":
+        command = _render_value(tool.get("command") or "", params)
+        language = (tool.get("language") or "bash").lower()
+        working_dir = _render_value(tool.get("workingDir") or "", params) or None
+        if not command:
+            return "Custom script tool misconfigured: missing command."
+        try:
+            return await shell_svc.run_shell(
+                command=command,
+                working_dir=working_dir,
+                timeout=timeout,
+                language=language,
+            )
+        except Exception as exc:
+            return f"[Custom script tool error] {exc}"
+
+    return f"Custom tool '{tool.get('name')}' has unsupported kind '{kind}'."
+
+# Aliases/synonyms used by planner prompts or user configs.
+# Keep keys normalized via _norm().
+_ALIASES: dict[str, str] = {
+    "search": "web_search",
+    "duckduckgo": "web_search",
+    "websearch": "web_search",
+    "browser_search": "web_search",
+    "http": "http_request",
+    "api": "http_request",
+    "rest": "http_request",
+    "python": "code_runner",
+    "python_runner": "code_runner",
+    "file": "file_reader",
+    "read_file": "file_reader",
+    "json": "json_parse",
+    "parse_json": "json_parse",
+    "csv": "csv_reader",
+    "split_text": "text_splitter",
+    "math": "calculator",
+    "calc": "calculator",
+    "date_time": "datetime_helper",
+    "datetime": "datetime_helper",
+    "time": "datetime_helper",
+    "summarizer": "summarize",
+}
+
+
+def _norm(value: str | None) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", (value or "").strip().lower()).strip("_")
+
+
+def _resolve_by_hint(hint: str | None) -> str | None:
+    h = (hint or "").lower()
+    if not h:
+        return None
+    if any(k in h for k in ("search", "web", "lookup", "find", "research")):
+        return "web_search"
+    if any(k in h for k in ("http", "api", "request", "endpoint", "post", "get")):
+        return "http_request"
+    if any(k in h for k in ("python", "code", "script", "run code", "execute code")):
+        return "code_runner"
+    if any(k in h for k in ("file", "document", "read file", "open file")):
+        return "file_reader"
+    if any(k in h for k in ("json", "payload", "schema")):
+        return "json_parse"
+    if any(k in h for k in ("csv", "spreadsheet", "tabular")):
+        return "csv_reader"
+    if any(k in h for k in ("split", "chunk", "tokenize")):
+        return "text_splitter"
+    if any(k in h for k in ("calculate", "math", "equation")):
+        return "calculator"
+    if any(k in h for k in ("date", "time", "timezone", "utc")):
+        return "datetime_helper"
+    if any(k in h for k in ("summarize", "summary", "compress text")):
+        return "summarize"
+    return None
+
+
+def resolve_tool_name(requested: str | None, hint: str | None = None) -> tuple[str | None, str | None]:
+    """
+    Resolve a requested tool name to an available built-in tool.
+    Returns: (resolved_tool_name_or_none, note_or_none)
+    """
+    raw = (requested or "").strip()
+    custom_tools = _load_custom_tools()
+    if raw in TOOLS:
+        return raw, None
+    if raw in custom_tools:
+        return raw, None
+
+    normalized = _norm(raw)
+    if normalized in TOOLS:
+        resolved = normalized
+        return resolved, f"Resolved tool '{raw}' → '{resolved}'."
+    if normalized in custom_tools:
+        return normalized, f"Resolved custom tool '{raw}' → '{normalized}'."
+
+    alias_hit = _ALIASES.get(normalized)
+    if alias_hit and alias_hit in TOOLS:
+        return alias_hit, f"Mapped tool alias '{raw}' → '{alias_hit}'."
+
+    if raw:
+        choices = list(TOOLS.keys()) + list(_ALIASES.keys()) + list(custom_tools.keys())
+        close = difflib.get_close_matches(normalized, choices, n=1, cutoff=0.78)
+        if close:
+            guessed = close[0]
+            resolved = _ALIASES.get(guessed, guessed)
+            if resolved in TOOLS or resolved in custom_tools:
+                return resolved, f"Tool '{raw}' not found. Using closest match '{resolved}'."
+
+    hinted = _resolve_by_hint(f"{raw} {hint or ''}")
+    if hinted and hinted in TOOLS:
+        note = f"Tool '{raw or 'unspecified'}' unavailable. Routed by intent to '{hinted}'."
+        return hinted, note
+
+    if not raw:
+        return None, "No tool specified."
+    return None, f"Unknown tool '{raw}'. Available tools: {', '.join(list_tools())}."
+
 
 def list_tools() -> list[str]:
-    return list(TOOLS.keys())
+    custom = sorted(_load_custom_tools().keys())
+    return list(TOOLS.keys()) + custom
+
+
+def get_tool_catalog() -> list[dict]:
+    catalog = []
+    builtins = set(TOOLS.keys())
+    custom_tools = _load_custom_tools()
+    for name in list_tools():
+        meta = _TOOL_CAPABILITIES.get(name, {})
+        if name in custom_tools:
+            custom = custom_tools[name]
+            meta = {
+                "category": f"custom_{custom.get('kind', 'tool')}",
+                "purpose": custom.get("description") or f"Custom {custom.get('kind', 'tool')} adapter",
+            }
+        catalog.append({
+            "name": name,
+            "category": meta.get("category", "general"),
+            "purpose": meta.get("purpose", ""),
+            "is_custom": name not in builtins,
+        })
+    return catalog
 
 
 async def run_tool(tool_name: str, params: dict) -> str:
     """Execute a tool by name. Returns its string result."""
-    fn = TOOLS.get(tool_name)
-    if not fn:
-        return f"Unknown tool: '{tool_name}'. Available: {list_tools()}"
+    resolved, note = resolve_tool_name(tool_name)
+    if not resolved:
+        return note or f"Unknown tool: '{tool_name}'. Available: {list_tools()}"
+    custom_tools = _load_custom_tools()
+    fn = TOOLS.get(resolved)
+
     try:
-        return await fn(params)
+        if fn:
+            result = await fn(params)
+        elif resolved in custom_tools:
+            result = await _run_custom_tool(custom_tools[resolved], params or {})
+        else:
+            return f"Unknown tool: '{tool_name}'. Available: {list_tools()}"
+        if note:
+            return f"{note}\n\n{result}"
+        return result
     except Exception as e:
-        return f"[Tool error: {tool_name}] {e}"
+        return f"[Tool error: {resolved}] {e}"
