@@ -56,6 +56,13 @@ async def _http_request(params: dict) -> str:
     url    = params.get("url", "")
     method = params.get("method", "GET").upper()
     body   = params.get("body", None)
+    if isinstance(body, str):
+        stripped = body.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                body = json.loads(stripped)
+            except Exception:
+                pass
     if not url:
         return "No URL provided."
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:

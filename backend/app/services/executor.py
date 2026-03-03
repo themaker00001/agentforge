@@ -80,6 +80,16 @@ def _resolve_templates(text: str, variables: dict[str, str]) -> str:
     return re.sub(r"\{\{([^}]+)\}\}", replacer, text)
 
 
+def _resolve_param_value(value, variables: dict[str, str]):
+    if isinstance(value, str):
+        return _resolve_templates(value, variables)
+    if isinstance(value, dict):
+        return {k: _resolve_param_value(v, variables) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve_param_value(v, variables) for v in value]
+    return value
+
+
 def _safe_eval(expr: str, context: str, variables: dict) -> bool:
     safe_globals = {
         "__builtins__": {},
@@ -391,7 +401,7 @@ async def execute(
                         )
                         if not tool_name:
                             return tool_note or f"Unknown tool: {requested_tool}"
-                        params = {k: _resolve_templates(str(v), variables)
+                        params = {k: _resolve_param_value(v, variables)
                                   for k, v in (child.data.params or {}).items()}
                         if not params:
                             params = {"query": user_input} if "search" in tool_name else {"code": context}
@@ -470,7 +480,7 @@ async def execute(
                     yield _emit(_log(LogType.warn, f"  {tool_note}", nid))
                 if not tool_name:
                     raise ValueError(tool_note or f"Unknown tool: {requested_tool}")
-                params = {k: _resolve_templates(str(v), variables)
+                params = {k: _resolve_param_value(v, variables)
                           for k, v in (node.data.params or {}).items()}
                 if not params:
                     search_query = user_input.strip() or context

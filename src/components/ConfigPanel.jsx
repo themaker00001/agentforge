@@ -711,6 +711,90 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
                             </select>
                         </div>
 
+                        {toolName === 'web_search' && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-query`}>Search Query</label>
+                                <input
+                                    id={`${node.id}-query`}
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="e.g. common billing failure causes SaaS"
+                                    value={p.query || ''}
+                                    onChange={e => update('params', { ...p, query: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                />
+                            </div>
+                        )}
+
+                        {toolName === 'http_request' && (
+                            <>
+                                <div className="cp-group">
+                                    <label className="form-label" htmlFor={`${node.id}-http-url`}>URL</label>
+                                    <input
+                                        id={`${node.id}-http-url`}
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="https://httpbin.org/anything"
+                                        value={p.url || ''}
+                                        onChange={e => update('params', { ...p, url: e.target.value })}
+                                        onKeyDown={stopKeys}
+                                    />
+                                </div>
+                                <div className="cp-group">
+                                    <label className="form-label" htmlFor={`${node.id}-http-method`}>Method</label>
+                                    <select
+                                        id={`${node.id}-http-method`}
+                                        className="form-select"
+                                        value={p.method || 'GET'}
+                                        onChange={e => update('params', { ...p, method: e.target.value })}
+                                        onKeyDown={stopKeys}
+                                    >
+                                        <option value="GET">GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="PATCH">PATCH</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+                                </div>
+                                <div className="cp-group">
+                                    <label className="form-label" htmlFor={`${node.id}-http-body`}>
+                                        JSON Body
+                                        <span className="form-label-hint"> (optional)</span>
+                                    </label>
+                                    <textarea
+                                        id={`${node.id}-http-body`}
+                                        className="form-textarea"
+                                        rows={6}
+                                        placeholder={`{\n  "issue_type": "{{issue_type}}",\n  "urgency": "{{urgency}}"\n}`}
+                                        value={
+                                            typeof p.body === 'string'
+                                                ? p.body
+                                                : (p.body ? JSON.stringify(p.body, null, 2) : '')
+                                        }
+                                        onChange={e => update('params', { ...p, body: e.target.value })}
+                                        onKeyDown={stopKeys}
+                                        style={{ fontFamily: 'monospace' }}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {toolName === 'code_runner' && (
+                            <div className="cp-group">
+                                <label className="form-label" htmlFor={`${node.id}-code`}>Python Code</label>
+                                <textarea
+                                    id={`${node.id}-code`}
+                                    className="form-textarea"
+                                    rows={6}
+                                    placeholder={`print("hello")`}
+                                    value={p.code || ''}
+                                    onChange={e => update('params', { ...p, code: e.target.value })}
+                                    onKeyDown={stopKeys}
+                                    style={{ fontFamily: 'monospace' }}
+                                />
+                            </div>
+                        )}
+
                         {(toolName === 'file_reader' || (!toolName && data.label.toLowerCase().includes('file'))) && (
                             <div className="cp-group">
                                 <label className="form-label" htmlFor={`${node.id}-filename`}>
