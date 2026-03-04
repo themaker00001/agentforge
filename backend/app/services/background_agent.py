@@ -13,12 +13,12 @@ from typing import Optional
 
 from app.models.schema import BackgroundTask, FlowGraph, TaskStatus
 
-# ── In-memory store ───────────────────────────────────────────────────────────
+#  In-memory store 
 
 _tasks: dict[str, BackgroundTask] = {}
 _queue: asyncio.Queue[str] = asyncio.Queue(maxsize=100)
 
-# ── Public API ────────────────────────────────────────────────────────────────
+#  Public API 
 
 
 async def submit_task(flow: FlowGraph, user_input: str) -> str:
@@ -55,7 +55,7 @@ def delete_task(task_id: str) -> bool:
     return False
 
 
-# ── Worker loop ───────────────────────────────────────────────────────────────
+#  Worker loop 
 
 
 async def worker_loop() -> None:
@@ -66,7 +66,7 @@ async def worker_loop() -> None:
     """
     from app.services.executor import execute  # local import to avoid circular deps
 
-    print("🔄 Background agent worker started.")
+    print(" Background agent worker started.")
     while True:
         task_id = await _queue.get()
         task = _tasks.get(task_id)

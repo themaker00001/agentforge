@@ -19,7 +19,7 @@ def _session_file(session_id: str) -> Path:
     return MEMORY_DIR / f"{session_id}.json"
 
 
-# ── Short-term ────────────────────────────────────────────────────────────────
+#  Short-term 
 
 def store_short(session_id: str, role: str, content: str) -> None:
     if session_id not in _short_term:
@@ -41,7 +41,7 @@ def clear_short(session_id: str) -> None:
     _short_term.pop(session_id, None)
 
 
-# ── Long-term ─────────────────────────────────────────────────────────────────
+#  Long-term 
 
 def store_long(session_id: str, key: str, value: str) -> None:
     path = _session_file(session_id)
@@ -59,7 +59,7 @@ def get_long(session_id: str) -> dict:
     return json.loads(path.read_text())
 
 
-# ── Context injection ─────────────────────────────────────────────────────────
+#  Context injection 
 
 def inject_context(session_id: str, messages: list[dict]) -> list[dict]:
     """

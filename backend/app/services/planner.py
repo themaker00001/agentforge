@@ -1,5 +1,5 @@
 """
-Planner Service — converts a user prompt into a FlowGraph.
+Planner Service  converts a user prompt into a FlowGraph.
 
 Strategy:
 1. Ask Ollama (or fallback LLM) to generate valid JSON for a flow graph.
@@ -22,7 +22,7 @@ Rules:
 - Use node types: "input", "agent", "tool", "knowledge", "output"
 - Each node has: id (string), nodeType (string), label (string), x (number), y (number)
 - Each edge has: source (node id), target (node id)
-- Keep it minimal: 3–6 nodes maximum.
+- Keep it minimal: 36 nodes maximum.
 - Return ONLY valid JSON, no markdown, no explanation.
 
 Example output:
@@ -89,13 +89,13 @@ def _template_flow(prompt: str) -> FlowGraph:
     }
 
     raw_nodes = templates[template]
-    ICONS = {"input":"💬","agent":"🤖","tool":"🔍","knowledge":"📚","output":"📤"}
+    ICONS = {"input":"","agent":"","tool":"","knowledge":"","output":""}
 
     nodes = [
         Node(
             id=nid, type="agentNode",
             position=NodePosition(x=x, y=y),
-            data=NodeData(nodeType=NodeType(nt), label=lbl, icon=ICONS.get(nt,"⚙️")),
+            data=NodeData(nodeType=NodeType(nt), label=lbl, icon=ICONS.get(nt,"")),
         )
         for nid, nt, lbl, x, y in raw_nodes
     ]
@@ -125,7 +125,7 @@ def _parse_llm_graph(raw_json: str) -> FlowGraph:
     raw_json = re.sub(r"```[a-z]*", "", raw_json).strip().strip("`")
     data = json.loads(raw_json)
 
-    ICONS = {"input":"💬","agent":"🤖","tool":"🔍","knowledge":"📚","output":"📤"}
+    ICONS = {"input":"","agent":"","tool":"","knowledge":"","output":""}
 
     nodes = [
         Node(
@@ -134,7 +134,7 @@ def _parse_llm_graph(raw_json: str) -> FlowGraph:
             data=NodeData(
                 nodeType=NodeType(n.get("nodeType", "agent")),
                 label=n.get("label", "Node"),
-                icon=ICONS.get(n.get("nodeType", "agent"), "⚙️"),
+                icon=ICONS.get(n.get("nodeType", "agent"), ""),
             ),
         )
         for n in data["nodes"]
@@ -147,7 +147,7 @@ def _parse_llm_graph(raw_json: str) -> FlowGraph:
 
 
 async def generate_flow(prompt: str, model: str = "ollama:llama3") -> FlowGraph:
-    """Main entry point: prompt → FlowGraph."""
+    """Main entry point: prompt  FlowGraph."""
     try:
         llm = get_llm(model)
         messages = [

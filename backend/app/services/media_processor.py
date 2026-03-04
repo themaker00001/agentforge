@@ -1,9 +1,9 @@
 """
-Media Processor — converts stored media files into executor-ready strings.
+Media Processor  converts stored media files into executor-ready strings.
 
-  image → data URL  (data:image/png;base64,...)
-  pdf   → extracted plain text
-  audio → Whisper transcript (requires openai.audio.transcriptions)
+  image  data URL  (data:image/png;base64,...)
+  pdf    extracted plain text
+  audio  Whisper transcript (requires openai.audio.transcriptions)
 """
 
 from app.services import media_store

@@ -1,5 +1,5 @@
 """
-Cost Tracker — token estimation and pricing calculation.
+Cost Tracker  token estimation and pricing calculation.
 
 Pricing table uses per-million-token rates (input, output).
 Ollama models are $0 since they run locally.
@@ -38,7 +38,7 @@ def calc_cost(model_str: str, tokens_in: int, tokens_out: int) -> float:
 
     lower = model_str.lower()
 
-    # Ollama / LM Studio — free local inference
+    # Ollama / LM Studio  free local inference
     if lower.startswith("ollama:") or lower.startswith("lmstudio:"):
         return 0.0
 

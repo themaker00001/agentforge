@@ -1,5 +1,5 @@
 """
-Knowledge Service — in-memory document store with keyword retrieval.
+Knowledge Service  in-memory document store with keyword retrieval.
 v1: Simple TF-style keyword matching (no external vector DB required).
 v2: Swap in ChromaDB / FAISS by implementing the same interface.
 """
@@ -34,7 +34,7 @@ def _chunk_text(text: str, size: int = 400, overlap: int = 80) -> list[str]:
 
 
 def _score(query: str, chunk: str) -> float:
-    """Simple keyword overlap score (0.0–1.0)."""
+    """Simple keyword overlap score (0.01.0)."""
     q_words = set(re.findall(r"\w+", query.lower()))
     c_words = set(re.findall(r"\w+", chunk.lower()))
     if not q_words:

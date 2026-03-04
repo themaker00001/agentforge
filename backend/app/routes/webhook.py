@@ -1,7 +1,7 @@
 """
-Webhook routes — register a flow for external HTTP triggering.
-POST /webhook/register  → stores the flow, returns webhook_id + trigger URL
-POST /webhook/{id}      → triggers the flow with HTTP body as user_input
+Webhook routes  register a flow for external HTTP triggering.
+POST /webhook/register   stores the flow, returns webhook_id + trigger URL
+POST /webhook/{id}       triggers the flow with HTTP body as user_input
 """
 
 import json
@@ -13,7 +13,7 @@ from app.services.executor import execute
 
 router = APIRouter(prefix="/webhook")
 
-# In-memory store: webhook_id → { flow, model, session_id }
+# In-memory store: webhook_id  { flow, model, session_id }
 _REGISTRY: dict[str, dict] = {}
 
 

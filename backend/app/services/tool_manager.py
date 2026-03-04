@@ -1,6 +1,6 @@
 """
-Tool Manager — built-in tools registry and execution.
-Each tool is a simple async function: (params: dict) → str
+Tool Manager  built-in tools registry and execution.
+Each tool is a simple async function: (params: dict)  str
 """
 
 import asyncio
@@ -25,7 +25,7 @@ SANDBOX_DIR.mkdir(exist_ok=True)
 CUSTOM_TOOLS_FILE = Path.home() / ".agentforge" / "custom_tools.json"
 
 
-# ── Tool implementations ──────────────────────────────────────────────────────
+#  Tool implementations 
 
 async def _web_search(params: dict) -> str:
     query = params.get("query", "").strip()
@@ -46,7 +46,7 @@ async def _web_search(params: dict) -> str:
             title = r.get("title", "")
             href  = r.get("href", "")
             body  = r.get("body", "")
-            lines.append(f"• {title}\n  {href}\n  {body}")
+            lines.append(f" {title}\n  {href}\n  {body}")
         return "\n\n".join(lines)
     except Exception as e:
         return f"Search failed: {e}"
@@ -107,11 +107,11 @@ async def _file_reader(params: dict) -> str:
 
 
 async def _summarize(params: dict) -> str:
-    """Stub — in real usage the agent service handles summarization via LLM."""
+    """Stub  in real usage the agent service handles summarization via LLM."""
     text = params.get("text", "")
     if not text:
         return "Nothing to summarize."
-    return text[:300] + ("…" if len(text) > 300 else "")
+    return text[:300] + ("" if len(text) > 300 else "")
 
 
 async def _json_parse(params: dict) -> str:
@@ -252,7 +252,7 @@ async def _datetime_helper(params: dict) -> str:
     return f"Unknown action: {action}. Use 'now', 'format', or 'diff'."
 
 
-# ── Registry ─────────────────────────────────────────────────────────────────
+#  Registry 
 
 TOOLS: dict[str, callable] = {
     "web_search":      _web_search,
@@ -509,13 +509,13 @@ def resolve_tool_name(requested: str | None, hint: str | None = None) -> tuple[s
     normalized = _norm(raw)
     if normalized in TOOLS:
         resolved = normalized
-        return resolved, f"Resolved tool '{raw}' → '{resolved}'."
+        return resolved, f"Resolved tool '{raw}'  '{resolved}'."
     if normalized in custom_tools:
-        return normalized, f"Resolved custom tool '{raw}' → '{normalized}'."
+        return normalized, f"Resolved custom tool '{raw}'  '{normalized}'."
 
     alias_hit = _ALIASES.get(normalized)
     if alias_hit and alias_hit in TOOLS:
-        return alias_hit, f"Mapped tool alias '{raw}' → '{alias_hit}'."
+        return alias_hit, f"Mapped tool alias '{raw}'  '{alias_hit}'."
 
     if raw:
         choices = list(TOOLS.keys()) + list(_ALIASES.keys()) + list(custom_tools.keys())

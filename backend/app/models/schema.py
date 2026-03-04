@@ -3,7 +3,7 @@ from typing import Any, Optional, Literal
 from pydantic import BaseModel, Field
 
 
-# ── Node / Edge ──────────────────────────────────────────────────────────────
+#  Node / Edge 
 
 class NodeType(str, Enum):
     input        = "input"
@@ -19,8 +19,8 @@ class NodeType(str, Enum):
     merge        = "merge"         # Merge multiple upstream outputs
     loop         = "loop"          # Iterate over a list
     webhook      = "webhook"       # External HTTP trigger
-    debate       = "debate"        # Multi-agent debate → judge synthesizes consensus
-    evaluator    = "evaluator"     # AI quality gate — routes pass/fail by score
+    debate       = "debate"        # Multi-agent debate  judge synthesizes consensus
+    evaluator    = "evaluator"     # AI quality gate  routes pass/fail by score
     parallel     = "parallel"      # Fan-out: run child branches concurrently
     note         = "note"          # Visual sticky note (no execution)
     media_input  = "media_input"   # Upload image / audio / PDF into the pipeline
@@ -29,7 +29,7 @@ class NodeType(str, Enum):
 class NodeData(BaseModel):
     nodeType:     NodeType   = NodeType.agent
     label:        str        = "Node"
-    icon:         str        = "🤖"
+    icon:         str        = ""
     model:        str        = "ollama:llama3:8b"
     apiKey:       Optional[str] = None
     systemPrompt: str        = ""
@@ -105,7 +105,7 @@ class FlowGraph(BaseModel):
     edges: list[Edge]
 
 
-# ── Request / Response bodies ─────────────────────────────────────────────────
+#  Request / Response bodies 
 
 class GenerateFlowRequest(BaseModel):
     prompt: str
@@ -126,7 +126,7 @@ class ModelsResponse(BaseModel):
     lmstudio: list[str] = []
 
 
-# ── Background task models ────────────────────────────────────────────────────
+#  Background task models 
 
 class TaskStatus(str, Enum):
     pending = "pending"
@@ -170,7 +170,7 @@ class CustomToolDefinition(BaseModel):
     language: Optional[Literal["bash", "python"]] = "bash"
 
 
-# ── Log events (SSE payloads) ─────────────────────────────────────────────────
+#  Log events (SSE payloads) 
 
 class LogType(str, Enum):
     info  = "info"
@@ -191,7 +191,7 @@ class LogEvent(BaseModel):
     data:      Optional[Any] = None
 
 
-# ── Webhook models ────────────────────────────────────────────────────────────
+#  Webhook models 
 
 class WebhookRegisterRequest(BaseModel):
     flow:      FlowGraph
@@ -204,7 +204,7 @@ class WebhookTriggerResponse(BaseModel):
     task_id:   Optional[str] = None
 
 
-# ── Deploy APIs ───────────────────────────────────────────────────────────────
+#  Deploy APIs 
 
 class DeployRequest(BaseModel):
     slug: str
@@ -225,7 +225,7 @@ class DeployInvokeRequest(BaseModel):
     input: str = ""
 
 
-# ── Run Records ───────────────────────────────────────────────────────────────
+#  Run Records 
 
 class RunSummary(BaseModel):
     run_id:         str

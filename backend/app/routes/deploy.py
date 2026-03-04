@@ -1,11 +1,11 @@
 """
-Deploy routes — save flows as public REST endpoints.
-POST /deploy     → saves flow to SQLite
-GET  /deploy     → lists deployed APIs
-GET  /deploy/{slug} → info (curl snippet)
-DEL  /deploy/{slug} → undeploy
-POST /api/{slug}    → invoke endpoint (sync JSON)
-POST /api/{slug}/stream → invoke endpoint (SSE)
+Deploy routes  save flows as public REST endpoints.
+POST /deploy      saves flow to SQLite
+GET  /deploy      lists deployed APIs
+GET  /deploy/{slug}  info (curl snippet)
+DEL  /deploy/{slug}  undeploy
+POST /api/{slug}     invoke endpoint (sync JSON)
+POST /api/{slug}/stream  invoke endpoint (SSE)
 """
 
 import json
@@ -18,7 +18,7 @@ from app.services.executor import execute
 
 router = APIRouter()
 
-# ── Management Routes ────────────────────────────────────────────────────────
+#  Management Routes 
 
 @router.post("/deploy", response_model=DeployedAPI, tags=["Deploy"])
 async def create_deploy(req: DeployRequest):
@@ -71,7 +71,7 @@ async def delete_deploy(slug: str):
     return {"deleted": slug}
 
 
-# ── Invoke Routes ────────────────────────────────────────────────────────────
+#  Invoke Routes 
 
 async def _load_and_verify(slug: str, x_api_key: str | None = Header(None)):
     row = deploy_store.get_deploy(slug)

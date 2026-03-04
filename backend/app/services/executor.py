@@ -61,14 +61,14 @@ def _topological_sort(graph: FlowGraph) -> list[str]:
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
     if len(order) != len(graph.nodes):
-        raise ValueError("Flow graph contains a cycle — cannot execute.")
+        raise ValueError("Flow graph contains a cycle  cannot execute.")
     return order
 
 
 def _first_sentence(text: str, max_chars: int = 600) -> str:
     # Take first non-empty line (preserves readability for multi-line responses)
     first_line = next((l.strip() for l in text.split("\n") if l.strip()), text.strip())
-    return first_line[:max_chars] + ("…" if len(first_line) > max_chars else "")
+    return first_line[:max_chars] + ("" if len(first_line) > max_chars else "")
 
 
 def _resolve_templates(text: str, variables: dict[str, str]) -> str:
@@ -139,7 +139,7 @@ async def _synthesize_output(node, user_input: str, gathered_context: str,
     raw_system = node.data.systemPrompt or (
         "You are a helpful assistant. "
         "Using the context below, write a clear, concise, and friendly answer "
-        "to the user's question. Do NOT echo the context verbatim — summarize "
+        "to the user's question. Do NOT echo the context verbatim  summarize "
         "and synthesize it into a natural response."
     )
     system = _resolve_templates(raw_system, variables)
@@ -163,7 +163,7 @@ async def execute(
     model: str = "ollama:llama3:8b",
     session_id: str = "default",
 ):
-    # ── Run tracking ──────────────────────────────────────────────────────
+    #  Run tracking 
     run_id       = str(uuid.uuid4())
     run_start_ms = int(time.time() * 1000)
     all_events:  list[dict] = []
@@ -174,7 +174,7 @@ async def execute(
         all_events.append(d)
         return d
 
-    yield _emit(_log(LogType.run, f"Starting execution — {len(graph.nodes)} nodes"))
+    yield _emit(_log(LogType.run, f"Starting execution  {len(graph.nodes)} nodes"))
 
     try:
         order = _topological_sort(graph)
@@ -205,7 +205,7 @@ async def execute(
         ntype = node.data.nodeType
         label = node.data.label
 
-        # ── Skip propagation ───────────────────────────────────────────────
+        #  Skip propagation 
         direct_sources = feeds[nid]
         if direct_sources:
             all_skipped = all(
@@ -214,10 +214,10 @@ async def execute(
             if all_skipped:
                 skipped_nodes.add(nid)
                 node_outputs[nid] = _SKIPPED
-                yield _emit(_log(LogType.info, f"  ↷ {label} skipped (inactive branch)", nid))
+                yield _emit(_log(LogType.info, f"   {label} skipped (inactive branch)", nid))
                 continue
 
-        yield _emit(_log(LogType.exec, f"▶ {label}", node_id=nid))
+        yield _emit(_log(LogType.exec, f" {label}", node_id=nid))
 
         direct_inputs = [
             node_outputs[src]
@@ -231,19 +231,19 @@ async def execute(
         node_start_ms = int(time.time() * 1000)
 
         try:
-            # ── Input ───────────────────────────────────────────────────────
+            #  Input 
             if ntype == NodeType.input:
                 result = user_input or f"[Input: {label}]"
 
-            # ── Webhook (input trigger) ─────────────────────────────────────
+            #  Webhook (input trigger) 
             elif ntype == NodeType.webhook:
                 result = user_input or f"[Webhook: {label}]"
 
-            # ── Sticky Note — visual only, no-op ────────────────────────────
+            #  Sticky Note  visual only, no-op 
             elif ntype == NodeType.note:
                 result = context  # pass-through, doesn't affect flow
 
-            # ── Set Variable ────────────────────────────────────────────────
+            #  Set Variable 
             elif ntype == NodeType.set_variable:
                 var_name = node.data.variableName or "var"
                 raw_val  = node.data.variableValue
@@ -252,12 +252,12 @@ async def execute(
                 yield _emit(_log(LogType.info, f"  Set ${var_name} = {var_val[:80]}", nid))
                 result = context
 
-            # ── Condition / If-Else ─────────────────────────────────────────
+            #  Condition / If-Else 
             elif ntype == NodeType.condition:
                 expr = _resolve_templates(node.data.conditionExpr or "True", variables)
                 branch = _safe_eval(expr, context, variables)
                 branch_label = "true" if branch else "false"
-                yield _emit(_log(LogType.info, f"  Condition '{expr}' → {branch_label}", nid))
+                yield _emit(_log(LogType.info, f"  Condition '{expr}'  {branch_label}", nid))
                 for edge in graph.edges:
                     if edge.source != nid:
                         continue
@@ -266,7 +266,7 @@ async def execute(
                         _mark_branch_skipped(edge.target, node_map, graph, skipped_nodes, node_outputs)
                 result = context
 
-            # ── Evaluator / Grader ──────────────────────────────────────────
+            #  Evaluator / Grader 
             elif ntype == NodeType.evaluator:
                 rubric    = _resolve_templates(
                     node.data.evaluatorRubric or "Rate the quality, accuracy, and helpfulness of this text.",
@@ -282,7 +282,7 @@ async def execute(
                     )},
                     {"role": "user", "content": context},
                 ]
-                yield _emit(_log(LogType.info, f"  Evaluating quality (threshold {threshold}/10)…", nid))
+                yield _emit(_log(LogType.info, f"  Evaluating quality (threshold {threshold}/10)", nid))
                 eval_response = await llm.chat(eval_msgs, temperature=0.1, max_tokens=150)
 
                 score = 5.0
@@ -301,7 +301,7 @@ async def execute(
                 passed = score >= threshold
                 verdict = "PASS" if passed else "FAIL"
                 yield _emit(_log(LogType.info,
-                           f"  Score: {score:.1f}/10 — {verdict} ({reason[:60]})", nid))
+                           f"  Score: {score:.1f}/10  {verdict} ({reason[:60]})", nid))
 
                 for edge in graph.edges:
                     if edge.source != nid:
@@ -311,9 +311,9 @@ async def execute(
                     if handle != expected:
                         _mark_branch_skipped(edge.target, node_map, graph, skipped_nodes, node_outputs)
 
-                result = f"[Score: {score:.1f}/10 — {verdict}]\n\n{context}"
+                result = f"[Score: {score:.1f}/10  {verdict}]\n\n{context}"
 
-            # ── Multi-Agent Debate ───────────────────────────────────────────
+            #  Multi-Agent Debate 
             elif ntype == NodeType.debate:
                 personas = node.data.debatePersonas or [
                     {"name": "Proponent",
@@ -329,7 +329,7 @@ async def execute(
                 )
                 eff_model = node.data.model or model
                 yield _emit(_log(LogType.info,
-                           f"  Debate: {len(personas)} personas on '{_first_sentence(user_input, 60)}'…", nid))
+                           f"  Debate: {len(personas)} personas on '{_first_sentence(user_input, 60)}'", nid))
 
                 async def _persona_response(p):
                     llm = get_llm(eff_model, api_key=node.data.apiKey)
@@ -357,7 +357,7 @@ async def execute(
 
                 debate_text = "\n\n---\n\n".join(debate_lines)
 
-                yield _emit(_log(LogType.info, "  Synthesizing debate into final answer…", nid))
+                yield _emit(_log(LogType.info, "  Synthesizing debate into final answer", nid))
                 judge_llm = get_llm(eff_model, api_key=node.data.apiKey)
                 judge_msgs = [
                     {"role": "system", "content": judge_prompt},
@@ -370,12 +370,12 @@ async def execute(
                 result = await judge_llm.chat(judge_msgs, temperature=0.3,
                                               max_tokens=node.data.maxTokens)
 
-            # ── Parallel Branch ─────────────────────────────────────────────
+            #  Parallel Branch 
             elif ntype == NodeType.parallel:
                 child_ids   = [e.target for e in graph.edges if e.source == nid]
                 child_nodes = [node_map[cid] for cid in child_ids if cid in node_map]
                 yield _emit(_log(LogType.info,
-                           f"  Launching {len(child_nodes)} parallel branches…", nid))
+                           f"  Launching {len(child_nodes)} parallel branches", nid))
 
                 async def _run_child_branch(child):
                     ctype = child.data.nodeType
@@ -430,14 +430,14 @@ async def execute(
                     executed_nodes.add(child.id)
                     clean.append(out)
                     yield _emit(_log(LogType.ok,
-                               f"  ✓ Branch '{child.data.label}': {_first_sentence(out)}", nid))
+                               f"   Branch '{child.data.label}': {_first_sentence(out)}", nid))
 
                 result = json.dumps(clean)
 
-            # ── Agent ───────────────────────────────────────────────────────
+            #  Agent 
             elif ntype == NodeType.agent:
                 eff_model = node.data.model or model
-                yield _emit(_log(LogType.info, f"  Calling LLM ({eff_model})…", nid))
+                yield _emit(_log(LogType.info, f"  Calling LLM ({eff_model})", nid))
                 enriched = (
                     f"[Search/Tool Results]:\n{context}\n\nUse the above results to answer the user's question."
                     if context and context != user_input and len(context) > 20
@@ -469,7 +469,7 @@ async def execute(
                         model_override=model if not node.data.model else None,
                     )
 
-            # ── Tool ────────────────────────────────────────────────────────
+            #  Tool 
             elif ntype == NodeType.tool:
                 requested_tool = node.data.toolName or _guess_tool(label)
                 tool_name, tool_note = tool_svc.resolve_tool_name(
@@ -489,21 +489,21 @@ async def execute(
                 yield _emit(_log(LogType.info, f"  Running tool: {tool_name}", nid))
                 result = await tool_svc.run_tool(tool_name, params)
 
-            # ── Knowledge ───────────────────────────────────────────────────
+            #  Knowledge 
             elif ntype == NodeType.knowledge:
-                yield _emit(_log(LogType.info, "  Retrieving knowledge context…", nid))
+                yield _emit(_log(LogType.info, "  Retrieving knowledge context", nid))
                 kb_result = know_svc.context_for(user_input, top_k=3)
                 if kb_result:
                     result = kb_result
                 else:
                     result = context or "No relevant knowledge found."
-                    yield _emit(_log(LogType.info, "  No KB docs loaded — passing through upstream context.", nid))
+                    yield _emit(_log(LogType.info, "  No KB docs loaded  passing through upstream context.", nid))
 
-            # ── Output ──────────────────────────────────────────────────────
+            #  Output 
             elif ntype == NodeType.output:
                 if node.data.systemPrompt and node.data.systemPrompt.strip():
-                    # User configured a custom synthesis prompt — run LLM
-                    yield _emit(_log(LogType.info, "  Synthesizing final answer…", nid))
+                    # User configured a custom synthesis prompt  run LLM
+                    yield _emit(_log(LogType.info, "  Synthesizing final answer", nid))
                     result = await _synthesize_output(
                         node=node,
                         user_input=user_input,
@@ -513,12 +513,12 @@ async def execute(
                         variables=variables,
                     )
                 else:
-                    # No custom prompt — the upstream agent already produced the answer.
+                    # No custom prompt  the upstream agent already produced the answer.
                     # Pass it through directly so nothing gets truncated or re-summarized.
                     result = context
                     yield _emit(_log(LogType.info, "  Output ready", nid))
 
-            # ── Merge ───────────────────────────────────────────────────────
+            #  Merge 
             elif ntype == NodeType.merge:
                 mode = node.data.mergeMode or "concat"
                 sep  = node.data.mergeSeparator if node.data.mergeSeparator is not None else "\n\n"
@@ -531,7 +531,7 @@ async def execute(
                     result = sep.join(non_empty)
                 yield _emit(_log(LogType.info, f"  Merged {len(non_empty)} inputs ({mode})", nid))
 
-            # ── Loop / Iterator ─────────────────────────────────────────────
+            #  Loop / Iterator 
             elif ntype == NodeType.loop:
                 loop_var = node.data.loopVar or "item"
                 items = _parse_list(context)
@@ -551,10 +551,10 @@ async def execute(
                         loop_results.append(cr)
                 result = json.dumps(loop_results) if loop_results else context
 
-            # ── Shell Executor ──────────────────────────────────────────────
+            #  Shell Executor 
             elif ntype == NodeType.shell_exec:
                 lang = node.data.language or "bash"
-                yield _emit(_log(LogType.run, f"  Running {lang} command…", nid))
+                yield _emit(_log(LogType.run, f"  Running {lang} command", nid))
                 cmd = node.data.command or context
                 output = await shell_svc.run_shell(
                     command=cmd, working_dir=node.data.workingDir,
@@ -563,10 +563,10 @@ async def execute(
                 result = output
                 yield _emit(_log(LogType.ok, f"  Shell output: {output[:200]}", nid))
 
-            # ── File System ─────────────────────────────────────────────────
+            #  File System 
             elif ntype == NodeType.file_system:
                 op = node.data.fsOperation or "read"
-                yield _emit(_log(LogType.run, f"  File operation: {op}…", nid))
+                yield _emit(_log(LogType.run, f"  File operation: {op}", nid))
                 output = await fs_svc.run_fs_operation(
                     operation=op, path=node.data.fsPath,
                     content=node.data.fsContent or context, pattern=node.data.fsPattern,
@@ -574,9 +574,9 @@ async def execute(
                 result = output
                 yield _emit(_log(LogType.ok, f"  FS result: {output[:200]}", nid))
 
-            # ── Power BI ────────────────────────────────────────────────────
+            #  Power BI 
             elif ntype == NodeType.powerbi:
-                yield _emit(_log(LogType.run, "  Starting Power BI interaction…", nid))
+                yield _emit(_log(LogType.run, "  Starting Power BI interaction", nid))
                 async for pbi_event in pbi_svc.run_powerbi_node(node, context):
                     if pbi_event["type"] == "result":
                         result = pbi_event["message"]
@@ -585,12 +585,12 @@ async def execute(
                     else:
                         yield _emit(_log(pbi_event["type"], pbi_event["message"], nid))
 
-            # ── Media Input ─────────────────────────────────────────────────
+            #  Media Input 
             elif ntype == NodeType.media_input:
                 media_type = node.data.mediaType or "image"
                 file_id    = node.data.mediaFileId
                 api_key    = node.data.apiKey
-                yield _emit(_log(LogType.info, f"  Processing {media_type} media…", nid))
+                yield _emit(_log(LogType.info, f"  Processing {media_type} media", nid))
                 if file_id:
                     processed = await media_processor.process_media(
                         file_id=file_id,
@@ -613,11 +613,11 @@ async def execute(
                     result = "[No media file or URL configured]"
                     yield _emit(_log(LogType.warn, result, nid))
 
-            # ── Fallback ────────────────────────────────────────────────────
+            #  Fallback 
             else:
                 result = context
 
-            # ── Per-node metrics ─────────────────────────────────────────────
+            #  Per-node metrics 
             latency_ms = int(time.time() * 1000) - node_start_ms
             eff_model  = node.data.model or model
             if ntype in _LLM_NODE_TYPES:
@@ -643,22 +643,22 @@ async def execute(
                 if result.startswith("data:image/")
                 else _first_sentence(result)
             )
-            ok_event = _log(LogType.ok, f"  ✓ {label}: {log_preview}", nid,
+            ok_event = _log(LogType.ok, f"   {label}: {log_preview}", nid,
                             data={"output": result, "metrics": metrics})
             yield _emit(ok_event)
 
         except Exception as exc:
-            yield _emit(_log(LogType.err, f"  ✗ {label} failed: {exc}", nid))
+            yield _emit(_log(LogType.err, f"   {label} failed: {exc}", nid))
             node_outputs[nid] = f"[error: {exc}]"
 
         await asyncio.sleep(0)
 
     output_nodes = [n for n in graph.nodes if n.data.nodeType == NodeType.output]
     final = "\n".join(node_outputs.get(n.id, "") for n in output_nodes)
-    done_event = _log(LogType.run, "Execution complete ✓", data={"final_output": final})
+    done_event = _log(LogType.run, "Execution complete ", data={"final_output": final})
     yield _emit(done_event)
 
-    # ── Persist run record ────────────────────────────────────────────────
+    #  Persist run record 
     duration_ms = int(time.time() * 1000) - run_start_ms
     try:
         import json as _json

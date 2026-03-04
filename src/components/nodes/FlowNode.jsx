@@ -1,32 +1,33 @@
 import { Handle, Position } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
+import NodeIcon from '../NodeIcon'
 import './NodeStyles.css'
 
 const NODE_CONFIG = {
-    input:        { icon: '💬', label: 'Input',        color: '#22c55e' },
-    agent:        { icon: '🤖', label: 'Agent',        color: '#6366f1' },
-    tool:         { icon: '🔧', label: 'Tool',         color: '#3b82f6' },
-    knowledge:    { icon: '📚', label: 'Knowledge',    color: '#f59e0b' },
-    output:       { icon: '📤', label: 'Output',       color: '#ec4899' },
-    shell_exec:   { icon: '💻', label: 'Shell',        color: '#a855f7' },
-    file_system:  { icon: '📁', label: 'File System',  color: '#f97316' },
-    powerbi:      { icon: '📊', label: 'Power BI',     color: '#f59e0b' },
-    condition:    { icon: '🔀', label: 'Condition',    color: '#14b8a6' },
-    set_variable: { icon: '📌', label: 'Set Variable', color: '#8b5cf6' },
-    merge:        { icon: '🔗', label: 'Merge',        color: '#0ea5e9' },
-    loop:         { icon: '🔁', label: 'Loop',         color: '#f43f5e' },
-    webhook:      { icon: '🪝', label: 'Webhook',      color: '#10b981' },
-    debate:       { icon: '⚖️', label: 'Debate',       color: '#d946ef' },
-    evaluator:    { icon: '🎯', label: 'Evaluator',    color: '#f59e0b' },
-    parallel:     { icon: '⚡', label: 'Parallel',     color: '#06b6d4' },
-    note:         { icon: '📝', label: 'Note',         color: '#78716c' },
-    media_input:  { icon: '🖼️', label: 'Media Input',  color: '#8b5cf6' },
+    input: { label: 'Input', color: '#22c55e' },
+    agent: { label: 'Agent', color: '#6366f1' },
+    tool: { label: 'Tool', color: '#3b82f6' },
+    knowledge: { label: 'Knowledge', color: '#f59e0b' },
+    output: { label: 'Output', color: '#ec4899' },
+    shell_exec: { label: 'Shell', color: '#a855f7' },
+    file_system: { label: 'File System', color: '#f97316' },
+    powerbi: { label: 'Power BI', color: '#f59e0b' },
+    condition: { label: 'Condition', color: '#14b8a6' },
+    set_variable: { label: 'Set Variable', color: '#8b5cf6' },
+    merge: { label: 'Merge', color: '#0ea5e9' },
+    loop: { label: 'Loop', color: '#f43f5e' },
+    webhook: { label: 'Webhook', color: '#10b981' },
+    debate: { label: 'Debate', color: '#d946ef' },
+    evaluator: { label: 'Evaluator', color: '#f59e0b' },
+    parallel: { label: 'Parallel', color: '#06b6d4' },
+    note: { label: 'Note', color: '#78716c' },
+    media_input: { label: 'Media Input', color: '#8b5cf6' },
 }
 
 function getCostColor(costUsd) {
     if (!costUsd || costUsd === 0) return '#6b7280'      // grey — free
-    if (costUsd < 0.0001)          return '#22c55e'      // green — cheap
-    if (costUsd < 0.001)           return '#f59e0b'      // amber — moderate
+    if (costUsd < 0.0001) return '#22c55e'      // green — cheap
+    if (costUsd < 0.001) return '#f59e0b'      // amber — moderate
     return '#ef4444'                                      // red — expensive
 }
 
@@ -51,19 +52,19 @@ function getNodeBadge(data) {
             const name = data.toolName || ''
             return toolMap[name] || name || 'Tool API'
         }
-        case 'input':        return 'Text Input'
-        case 'knowledge':    return 'Vector DB'
-        case 'shell_exec':   return data.language ? `Shell (${data.language})` : 'Shell'
-        case 'file_system':  return `File (${data.fsOperation || 'read'})`
-        case 'powerbi':      return data.pbiAction === 'refresh' ? 'Refresh' : 'DAX Query'
-        case 'condition':    return data.conditionExpr ? data.conditionExpr.slice(0, 18) : 'If/Else'
+        case 'input': return 'Text Input'
+        case 'knowledge': return 'Vector DB'
+        case 'shell_exec': return data.language ? `Shell (${data.language})` : 'Shell'
+        case 'file_system': return `File (${data.fsOperation || 'read'})`
+        case 'powerbi': return data.pbiAction === 'refresh' ? 'Refresh' : 'DAX Query'
+        case 'condition': return data.conditionExpr ? data.conditionExpr.slice(0, 18) : 'If/Else'
         case 'set_variable': return data.variableName ? `$${data.variableName}` : 'Set Var'
-        case 'merge':        return data.mergeMode || 'concat'
-        case 'loop':         return data.loopVar ? `each $${data.loopVar}` : 'Loop'
-        case 'webhook':      return 'HTTP Trigger'
-        case 'parallel':     return 'Fan-out'
-        case 'note':         return ''
-        case 'media_input':  return data.mediaType?.toUpperCase() || 'Media'
+        case 'merge': return data.mergeMode || 'concat'
+        case 'loop': return data.loopVar ? `each $${data.loopVar}` : 'Loop'
+        case 'webhook': return 'HTTP Trigger'
+        case 'parallel': return 'Fan-out'
+        case 'note': return ''
+        case 'media_input': return data.mediaType?.toUpperCase() || 'Media'
         default: return ''
     }
 }
@@ -83,7 +84,7 @@ function StickyNote({ data, selected }) {
             >
                 <Trash2 size={11} />
             </button>
-            <div className="note-text">{data.noteContent || '✏️ Click to add a note…'}</div>
+            <div className="note-text">{data.noteContent || 'Click to add a note…'}</div>
         </div>
     )
 }
@@ -95,18 +96,18 @@ export function FlowNode({ data, selected }) {
     }
 
     const cfg = NODE_CONFIG[data.nodeType] || NODE_CONFIG.agent
-    const isRunning    = data.status === 'running'
-    const badge        = getNodeBadge(data)
-    const isCondition  = data.nodeType === 'condition'
-    const isEvaluator  = data.nodeType === 'evaluator'
-    const isParallel   = data.nodeType === 'parallel'
+    const isRunning = data.status === 'running'
+    const badge = getNodeBadge(data)
+    const isCondition = data.nodeType === 'condition'
+    const isEvaluator = data.nodeType === 'evaluator'
+    const isParallel = data.nodeType === 'parallel'
     const isMediaInput = data.nodeType === 'media_input'
-    const hasDualOut   = isCondition || isEvaluator
+    const hasDualOut = isCondition || isEvaluator
 
     // Dual-output handle labels
     const dualLabels = isEvaluator
         ? { top: { id: 'pass', color: '#22c55e', char: '✓' }, bottom: { id: 'fail', color: '#ef4444', char: '✗' } }
-        : { top: { id: 'true', color: '#22c55e', char: 'T'  }, bottom: { id: 'false', color: '#ef4444', char: 'F' } }
+        : { top: { id: 'true', color: '#22c55e', char: 'T' }, bottom: { id: 'false', color: '#ef4444', char: 'F' } }
 
     return (
         <div
@@ -123,7 +124,7 @@ export function FlowNode({ data, selected }) {
             )}
 
             <div className="fn-header">
-                <div className="fn-icon">{cfg.icon}</div>
+                <div className="fn-icon"><NodeIcon type={data.iconType || data.nodeType} size={14} /></div>
                 <div className="fn-info">
                     <div className="fn-title">{data.label}</div>
                     <div className="fn-type">{cfg.label} node</div>

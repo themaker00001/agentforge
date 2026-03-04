@@ -1,5 +1,5 @@
 """
-Run Store — SQLite-backed persistence for flow execution records.
+Run Store  SQLite-backed persistence for flow execution records.
 
 DB file: agentforge_runs.db (in the backend root directory)
 Table:   flow_runs

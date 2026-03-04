@@ -23,7 +23,7 @@ class BaseLLM(ABC):
     ) -> AsyncGenerator[str, None]:
         """
         Async generator that yields text chunks.
-        Default implementation yields the full result as a single chunk —
+        Default implementation yields the full result as a single chunk 
         safe fallback for providers that don't implement real streaming.
         """
         result = await self.chat(messages, temperature=temperature, max_tokens=max_tokens)

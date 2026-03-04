@@ -1,5 +1,5 @@
 """
-Agent Service — runs a single "agent" node using an LLM.
+Agent Service  runs a single "agent" node using an LLM.
 Builds context from memory + knowledge, calls the LLM, stores result.
 """
 

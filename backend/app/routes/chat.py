@@ -1,5 +1,5 @@
 """
-Chat route — simplified single-turn chat endpoint.
+Chat route  simplified single-turn chat endpoint.
 Runs the active flow with the user's message and streams a clean
 response event containing only the final output node's text.
 """
@@ -50,7 +50,7 @@ async def chat_route(req: ChatRequest):
                 yield f"data: {json.dumps(event)}\n\n"
 
                 if event.get("type") == "ok" and event.get("nodeId"):
-                    # Prefer event.data.output — always the real text
+                    # Prefer event.data.output  always the real text
                     content = (event.get("data") or {}).get("output", "")
                     if not content or content == "[DONE]":
                         continue

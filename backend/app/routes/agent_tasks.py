@@ -1,9 +1,9 @@
 """
 Background Agent Task Routes
-POST   /agent-tasks          — submit a background task
-GET    /agent-tasks          — list all tasks
-GET    /agent-tasks/{id}     — get task status + result
-DELETE /agent-tasks/{id}     — remove a task
+POST   /agent-tasks           submit a background task
+GET    /agent-tasks           list all tasks
+GET    /agent-tasks/{id}      get task status + result
+DELETE /agent-tasks/{id}      remove a task
 """
 
 from fastapi import APIRouter, HTTPException

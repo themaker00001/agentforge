@@ -8,7 +8,7 @@ from __future__ import annotations
 import glob as glob_module
 from pathlib import Path
 
-# Sandbox base directory — same as shell_executor uses
+# Sandbox base directory  same as shell_executor uses
 WORKSPACE = Path.home() / "agentforge_workspace"
 
 

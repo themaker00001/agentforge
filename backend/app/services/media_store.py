@@ -1,5 +1,5 @@
 """
-Media Store — save uploaded files to /tmp/agentforge_media/ and retrieve them.
+Media Store  save uploaded files to /tmp/agentforge_media/ and retrieve them.
 
 Supports: image (PNG, JPEG, GIF, WebP), audio (MP3, WAV, M4A, OGG), PDF.
 Returns base64-encoded data for downstream processing.
@@ -14,7 +14,7 @@ from pathlib import Path
 _MEDIA_DIR = Path("/tmp/agentforge_media")
 _MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Accepted MIME types → canonical media_type string
+# Accepted MIME types  canonical media_type string
 MIME_TO_TYPE: dict[str, str] = {
     "image/png":  "image",
     "image/jpeg": "image",
@@ -72,7 +72,7 @@ def save_file(filename: str, data: bytes, mime_type: str | None = None) -> dict:
 
 
 def get_file_path(file_id: str) -> Path | None:
-    """Resolve file_id → actual path on disk (searches by prefix)."""
+    """Resolve file_id  actual path on disk (searches by prefix)."""
     for f in _MEDIA_DIR.iterdir():
         if f.name.startswith(file_id):
             return f
@@ -105,7 +105,7 @@ def extract_pdf_text(file_id: str) -> str:
         return "\n\n".join(p.strip() for p in pages if p.strip())
     except ImportError:
         return (
-            "[PDF text extraction unavailable — install pymupdf: pip install pymupdf]\n"
+            "[PDF text extraction unavailable  install pymupdf: pip install pymupdf]\n"
             f"PDF file stored at: {path}"
         )
     except Exception as exc:

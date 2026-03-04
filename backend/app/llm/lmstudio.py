@@ -1,7 +1,7 @@
 """
 LM Studio LLM Provider
 LM Studio exposes an OpenAI-compatible API at http://localhost:1234/v1.
-No API key required — local only.
+No API key required  local only.
 """
 
 import httpx

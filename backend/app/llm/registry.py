@@ -1,10 +1,10 @@
 """
-LLM Registry — resolves "provider:model" strings to LLM instances.
+LLM Registry  resolves "provider:model" strings to LLM instances.
 Examples:
-  get_llm("ollama:llama3")         → OllamaLLM("llama3")
-  get_llm("openai:gpt-4o")         → OpenAILLM("gpt-4o")
-  get_llm("gemini:gemini-1.5-pro") → GeminiLLM("gemini-1.5-pro")
-  get_llm("lmstudio:my-model")     → LMStudioLLM("my-model")
+  get_llm("ollama:llama3")          OllamaLLM("llama3")
+  get_llm("openai:gpt-4o")          OpenAILLM("gpt-4o")
+  get_llm("gemini:gemini-1.5-pro")  GeminiLLM("gemini-1.5-pro")
+  get_llm("lmstudio:my-model")      LMStudioLLM("my-model")
 """
 
 from .base import BaseLLM

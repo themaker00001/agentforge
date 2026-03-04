@@ -1,5 +1,5 @@
 """
-Deploy Store — SQLite-backed persistence for deployed workflow APIs.
+Deploy Store  SQLite-backed persistence for deployed workflow APIs.
 
 DB file: agentforge_deploys.db (in the backend root directory)
 Table:   deployed_apis
@@ -19,7 +19,7 @@ from pathlib import Path
 _DB_PATH = Path(__file__).parent.parent.parent / "agentforge_deploys.db"
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+#  Helpers 
 
 def _conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_DB_PATH)
@@ -36,7 +36,7 @@ def verify_key(raw: str, stored_hash: str) -> bool:
     return hash_key(raw) == stored_hash
 
 
-# ── Lifecycle ────────────────────────────────────────────────────────────────
+#  Lifecycle 
 
 def init_db() -> None:
     """Create the deployed_apis table if it doesn't exist. Call on startup."""
@@ -53,7 +53,7 @@ def init_db() -> None:
         conn.commit()
 
 
-# ── CRUD ─────────────────────────────────────────────────────────────────────
+#  CRUD 
 
 def save_deploy(slug: str, flow_json: str, model: str, api_key: str | None) -> dict:
     """Insert or replace a deployment. Returns the stored row as a dict."""
