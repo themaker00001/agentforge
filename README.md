@@ -125,6 +125,36 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 
 ---
 
+## Example Workflows
+
+Here's a real end-to-end **Customer Support Agent** built in AgentForge — no code, just nodes.
+
+### 🔧 Building the Flow
+
+Drop in agents, tools, and evaluators from the node library and wire them together on the canvas. This flow handles an incoming support ticket by enriching context, generating a reply, and self-evaluating quality before sending.
+
+![AgentForge workflow builder showing a customer support agent with Set Variables, API Call, Evaluator, Web Search, Merge, and Improve Reply nodes connected on the canvas](docs/screenshots/demo1.png)
+
+---
+
+### 🤖 Watching It Run
+
+Hit **Run** and watch the debug console stream live execution logs — node by node, token by token. See each step pass or fail with scores in real time.
+
+![AgentForge debug console showing live execution with step-by-step logs, SSE streaming, and an evaluator scoring the agent reply at 8.0/10 — PASS](docs/screenshots/demo2.png)
+
+---
+
+### ⚡ Self-Improving Loop
+
+When the **Evaluator** scores a reply below threshold (e.g. 4.0/10 — FAIL), the flow automatically routes back to the **Improve Reply** node — no manual intervention needed. The agent refines its own output until it meets your quality bar.
+
+![AgentForge full browser view showing the flow canvas with the Evaluator node catching a low-quality reply and routing it back through the Improve Reply node for self-correction](docs/screenshots/demo3.png)
+
+> 📁 *To display these screenshots: save your images to `docs/screenshots/demo1.png`, `demo2.png`, and `demo3.png` in the project root.*
+
+---
+
 ## Quickstart
 
 ### Prerequisites
