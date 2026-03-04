@@ -11,6 +11,7 @@ import { saveFlow, loadFlow, listSavedFlows, exportFlow, importFlowFromJSON } fr
 import TemplatesPanel from './components/TemplatesPanel'
 import DeployPanel from './components/DeployPanel'
 import RunsPanel from './components/RunsPanel'
+import DashboardPanel from './components/DashboardPanel'
 import './App.css'
 
 function createSessionId() {
@@ -72,6 +73,7 @@ export default function App() {
     const [showTemplates, setShowTemplates] = useState(false)
     const [showDeploy, setShowDeploy] = useState(false)
     const [showRuns, setShowRuns] = useState(false)
+    const [showDashboard, setShowDashboard] = useState(false)
     const [sessionId, setSessionId] = useState(() => createSessionId())
 
     const consoleRef = useRef(null)
@@ -132,9 +134,9 @@ export default function App() {
                 noteContent: n.data.noteContent || null,
                 noteColor: n.data.noteColor || '#fef3c7',
                 // Media input node
-                mediaType:   n.data.mediaType   || null,
+                mediaType: n.data.mediaType || null,
                 mediaFileId: n.data.mediaFileId || null,
-                mediaUrl:    n.data.mediaUrl    || null,
+                mediaUrl: n.data.mediaUrl || null,
             },
         })),
         edges: edges.map(e => ({
@@ -191,13 +193,13 @@ export default function App() {
                     log(event.type, event.message, event.data)
                     if (event.nodeId) {
                         const newStatus = STATUS_MAP[event.type]
-                        const metrics   = event.data?.metrics
+                        const metrics = event.data?.metrics
                         if (newStatus || metrics) {
                             setNodes(nds => nds.map(n => {
                                 if (n.id !== event.nodeId) return n
                                 const extra = {}
-                                if (newStatus) extra.status  = newStatus
-                                if (metrics)   extra.metrics = metrics
+                                if (newStatus) extra.status = newStatus
+                                if (metrics) extra.metrics = metrics
                                 return { ...n, data: { ...n.data, ...extra } }
                             }))
                         }
@@ -266,13 +268,13 @@ export default function App() {
         log(event.type, event.message, event.data)
         if (event.nodeId) {
             const newStatus = STATUS_MAP[event.type]
-            const metrics   = event.data?.metrics
+            const metrics = event.data?.metrics
             if (newStatus || metrics) {
                 setNodes(nds => nds.map(n => {
                     if (n.id !== event.nodeId) return n
                     const extra = {}
-                    if (newStatus) extra.status  = newStatus
-                    if (metrics)   extra.metrics = metrics
+                    if (newStatus) extra.status = newStatus
+                    if (metrics) extra.metrics = metrics
                     return { ...n, data: { ...n.data, ...extra } }
                 }))
             }
@@ -323,6 +325,7 @@ export default function App() {
                 onShowTemplates={() => setShowTemplates(true)}
                 onDeploy={() => setShowDeploy(true)}
                 onShowRuns={() => setShowRuns(true)}
+                onShowDashboard={() => setShowDashboard(true)}
             />
 
             <div className="app-body">
@@ -386,6 +389,12 @@ export default function App() {
                     onClose={() => setShowRuns(false)}
                     onReplayEvent={handleReplayEvent}
                     onResetNodes={handleResetNodes}
+                />
+            )}
+
+            {showDashboard && (
+                <DashboardPanel
+                    onClose={() => setShowDashboard(false)}
                 />
             )}
 

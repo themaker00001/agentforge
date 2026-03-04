@@ -310,3 +310,62 @@ export async function uploadMedia(file) {
         throw err
     }
 }
+
+// ── Dashboard Stats ───────────────────────────────────────────────────────────
+
+export async function getStats() {
+    try {
+        const res = await fetch(`${BASE}/stats`)
+        if (!res.ok) return null
+        return await res.json()
+    } catch {
+        return null
+    }
+}
+
+// ── Scheduler ────────────────────────────────────────────────────────────────
+
+export async function listSchedules() {
+    try {
+        const res = await fetch(`${BASE}/schedules`)
+        if (!res.ok) return []
+        return await res.json()
+    } catch {
+        return []
+    }
+}
+
+export async function createSchedule(payload) {
+    const res = await fetch(`${BASE}/schedules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || `Create schedule failed: HTTP ${res.status}`)
+    }
+    return await res.json()
+}
+
+export async function toggleSchedule(scheduleId) {
+    const res = await fetch(`${BASE}/schedules/${encodeURIComponent(scheduleId)}/toggle`, {
+        method: 'PUT',
+    })
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || `Toggle schedule failed: HTTP ${res.status}`)
+    }
+    return await res.json()
+}
+
+export async function deleteSchedule(scheduleId) {
+    const res = await fetch(`${BASE}/schedules/${encodeURIComponent(scheduleId)}`, {
+        method: 'DELETE',
+    })
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || `Delete schedule failed: HTTP ${res.status}`)
+    }
+    return await res.json()
+}
