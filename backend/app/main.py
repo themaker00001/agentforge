@@ -22,10 +22,11 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown logic."""
     import asyncio
     import httpx
+    ollama_base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
     print(" AgentForge backend starting")
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
-            resp = await client.get("http://localhost:11434/api/tags")
+            resp = await client.get(f"{ollama_base}/api/tags")
             if resp.status_code == 200:
                 data = resp.json()
                 model_names = [m["name"] for m in data.get("models", [])]

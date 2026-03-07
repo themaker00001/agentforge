@@ -5,9 +5,10 @@ No API key required  local only.
 """
 
 import httpx
+import os
 from .base import BaseLLM
 
-LMSTUDIO_BASE = "http://localhost:1234"
+LMSTUDIO_BASE = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234")
 
 
 class LMStudioLLM(BaseLLM):

@@ -1,7 +1,8 @@
 import httpx
+import os
 from .base import BaseLLM
 
-OLLAMA_BASE = "http://localhost:11434"
+OLLAMA_BASE = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
 class OllamaLLM(BaseLLM):

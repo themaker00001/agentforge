@@ -289,7 +289,7 @@ export default function TopBar({
             </div>
 
             {/* Run input */}
-            <div className="topbar-prompt" style={{ flex: '0 0 220px' }}>
+            <div className="topbar-prompt">
                 <div className="prompt-icon">
                     <Play size={12} />
                 </div>

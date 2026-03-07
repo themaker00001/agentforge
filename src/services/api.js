@@ -1,9 +1,10 @@
 /**
  * AgentForge Backend API Client
- * Connects the React frontend to the FastAPI backend at http://localhost:8000
+ * Defaults to same-origin /api (recommended for Docker + reverse proxy).
+ * Can be overridden with VITE_API_BASE.
  */
-
-const BASE = 'http://127.0.0.1:8000'
+const rawBase = (import.meta.env.VITE_API_BASE || '/api').trim()
+const BASE = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase
 
 // ── Health ────────────────────────────────────────────────────────────────────
 

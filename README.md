@@ -157,6 +157,42 @@ When the **Evaluator** scores a reply below threshold (e.g. 4.0/10 — FAIL), th
 
 ## Quickstart
 
+### Option A: Run with Docker (recommended)
+
+#### Prerequisites
+- Docker Desktop (or Docker Engine + Compose plugin)
+- Optional local model runtime:
+  - Ollama running on your host at `http://localhost:11434`
+  - LM Studio running on your host at `http://localhost:1234`
+
+#### 1. Clone and start
+```bash
+git clone git@github.com:themaker00001/agentforge.git
+cd agentforge
+docker compose up --build
+```
+
+#### 2. Open the app
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+
+#### 3. Optional API keys for cloud models
+```bash
+OPENAI_API_KEY=your_key GEMINI_API_KEY=your_key docker compose up --build
+```
+
+#### Docker notes
+- Frontend is served by Nginx and proxies `/api` to the backend container.
+- By default, backend tries:
+  - `OLLAMA_BASE_URL=http://host.docker.internal:11434`
+  - `LMSTUDIO_BASE_URL=http://host.docker.internal:1234`
+- Override those endpoints if needed:
+```bash
+OLLAMA_BASE_URL=http://my-host:11434 LMSTUDIO_BASE_URL=http://my-host:1234 docker compose up --build
+```
+
+### Option B: Run locally (without Docker)
+
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
