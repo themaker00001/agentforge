@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare, Clock, Trash2, X, Save, Upload, Download, FolderOpen, LayoutTemplate, Rocket, Pencil, History, TrendingUp } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Play, Zap, Settings, ChevronDown, Server, ServerOff, MessageSquare, Clock, Trash2, X, Save, Upload, Download, FolderOpen, LayoutTemplate, Rocket, Pencil, History, TrendingUp, Maximize2 } from 'lucide-react'
 import { getModels, checkBackend, listTasks, deleteTask } from '../services/api'
 import './TopBar.css'
 
@@ -165,6 +166,37 @@ function SaveLoadPanel({ onSave, onLoad, onExport, onImport, onClose, listSavedF
 
 const STATUS_LABEL = { idle: 'Idle', running: 'Running', generating: 'Building' }
 
+function PromptEditorModal({ open, title, value, placeholder, onChange, onClose, onSubmit }) {
+    if (!open || typeof document === 'undefined') return null
+    return createPortal((
+        <div className="prompt-modal-backdrop" onClick={onClose}>
+            <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="prompt-modal-header">
+                    <h3>{title}</h3>
+                    <button className="icon-btn" onClick={onClose} title="Close">
+                        <X size={14} />
+                    </button>
+                </div>
+                <textarea
+                    className="prompt-modal-textarea"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    autoFocus
+                    onKeyDown={(e) => {
+                        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') onSubmit?.()
+                        if (e.key === 'Escape') onClose()
+                    }}
+                />
+                <div className="prompt-modal-footer">
+                    <span>Tip: Cmd/Ctrl + Enter to submit</span>
+                    <button className="btn btn-primary" onClick={onSubmit}>Apply</button>
+                </div>
+            </div>
+        </div>
+    ), document.body)
+}
+
 export default function TopBar({
     onGenerate, onRun, onRunBackground, onPreview,
     selectedModel, onModelChange, isGenerating, isRunning, hasFlow,
@@ -181,6 +213,7 @@ export default function TopBar({
     const [bgSubmitting, setBgSubmitting] = useState(false)
     const [projectName, setProjectName] = useState('Untitled Agent')
     const [editingName, setEditingName] = useState(false)
+    const [expandedField, setExpandedField] = useState(null)
 
     const statusKey = isRunning ? 'running' : isGenerating ? 'generating' : 'idle'
 
@@ -284,8 +317,18 @@ export default function TopBar({
                     onChange={e => setPrompt(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Describe the agent workflow you want to build…"
+                    onDoubleClick={() => setExpandedField('generate')}
                 />
-                <span className="prompt-hint">⌘K</span>
+                <div className="prompt-right-controls">
+                    <span className="prompt-hint">⌘K</span>
+                    <button
+                        className="prompt-expand-btn"
+                        title="Expand editor"
+                        onClick={() => setExpandedField('generate')}
+                    >
+                        <Maximize2 size={11} />
+                    </button>
+                </div>
             </div>
 
             {/* Run input */}
@@ -299,7 +342,15 @@ export default function TopBar({
                     onChange={e => onUserInputChange(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && hasFlow && onRun()}
                     placeholder="Type your question, then click Run…"
+                    onDoubleClick={() => setExpandedField('run')}
                 />
+                <button
+                    className="prompt-expand-btn"
+                    title="Expand editor"
+                    onClick={() => setExpandedField('run')}
+                >
+                    <Maximize2 size={11} />
+                </button>
             </div>
 
             {/* Actions */}
@@ -451,6 +502,31 @@ export default function TopBar({
 
                 <div className="avatar" title="Profile">C</div>
             </div>
+
+            <PromptEditorModal
+                open={expandedField === 'generate'}
+                title="Describe Workflow"
+                value={prompt}
+                placeholder="Describe the agent workflow you want to build…"
+                onChange={setPrompt}
+                onClose={() => setExpandedField(null)}
+                onSubmit={() => {
+                    if (prompt.trim()) onGenerate(prompt)
+                    setExpandedField(null)
+                }}
+            />
+            <PromptEditorModal
+                open={expandedField === 'run'}
+                title="Run Input"
+                value={userInput}
+                placeholder="Type your question, then click Run…"
+                onChange={onUserInputChange}
+                onClose={() => setExpandedField(null)}
+                onSubmit={() => {
+                    if (hasFlow) onRun()
+                    setExpandedField(null)
+                }}
+            />
         </header>
     )
 }

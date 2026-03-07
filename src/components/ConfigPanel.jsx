@@ -208,6 +208,50 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
                     <MediaInputConfig data={data} update={update} nodeId={node.id} />
                 )}
 
+                {/* ── Input node config ── */}
+                {isInput && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                            Input nodes can accept live Run input, or fall back to a default payload defined here.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-inputmode`}>Input Type</label>
+                            <select
+                                id={`${node.id}-inputmode`}
+                                className="form-select"
+                                value={data.inputMode || 'text'}
+                                onChange={e => update('inputMode', e.target.value)}
+                                onKeyDown={stopKeys}
+                            >
+                                <option value="text">Text</option>
+                                <option value="json">JSON</option>
+                                <option value="key_value">Key-Value (one per line)</option>
+                            </select>
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-inputdefault`}>
+                                Default Payload
+                                <span className="form-label-hint"> (used when Run input is empty)</span>
+                            </label>
+                            <textarea
+                                id={`${node.id}-inputdefault`}
+                                className="form-textarea"
+                                rows={7}
+                                placeholder={
+                                    data.inputMode === 'json'
+                                        ? '{\n  "ticket": "I was charged twice"\n}'
+                                        : data.inputMode === 'key_value'
+                                            ? 'ticket: I was charged twice\npriority_hint: high\nchannel: email'
+                                            : 'Paste default text input here...'
+                                }
+                                value={data.inputDefault || ''}
+                                onChange={e => update('inputDefault', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                    </>
+                )}
+
                 {/* ── Sticky Note config ── */}
                 {isNote && (
                     <>
@@ -347,6 +391,51 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
                         Connect multiple Agent or Tool nodes to this node's output. They will all run <em>simultaneously</em> using asyncio.gather, then the results are collected as a JSON array.<br /><br />
                         Connect a <strong>Merge</strong> node downstream to combine the parallel results.
                     </div>
+                )}
+
+                {/* ── Knowledge node config ── */}
+                {isKnowledge && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                            Use uploaded docs from Knowledge Base and/or add quick inline context specific to this node.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-k-topk`}>
+                                Retrieved Chunks (top-k)
+                            </label>
+                            <input
+                                id={`${node.id}-k-topk`}
+                                type="number"
+                                className="form-input"
+                                min={1}
+                                max={10}
+                                step={1}
+                                value={data.knowledgeTopK ?? 3}
+                                onChange={e => {
+                                    const val = Number.parseInt(e.target.value, 10)
+                                    if (!Number.isNaN(val)) update('knowledgeTopK', Math.max(1, Math.min(10, val)))
+                                }}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-k-inline`}>
+                                Inline Knowledge (optional)
+                            </label>
+                            <textarea
+                                id={`${node.id}-k-inline`}
+                                className="form-textarea"
+                                rows={7}
+                                placeholder="Paste policy text, support SOP, refund rules, escalation matrix, etc."
+                                value={data.knowledgeText || ''}
+                                onChange={e => update('knowledgeText', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                            <div className="form-hint">
+                                Tip: this is appended even if no KB documents are uploaded.
+                            </div>
+                        </div>
+                    </>
                 )}
 
                 {/* ── Condition node config ── */}

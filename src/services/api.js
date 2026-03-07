@@ -72,7 +72,24 @@ export async function executeFlow(flow, userInput, model, sessionId = 'default',
         body: JSON.stringify({ flow, userInput, model, sessionId }),
         signal,
     })
-    if (!res.ok) throw new Error(`Execute failed: HTTP ${res.status}`)
+    if (!res.ok) {
+        let detail = `HTTP ${res.status}`
+        try {
+            const data = await res.json()
+            if (data?.detail) {
+                if (Array.isArray(data.detail)) {
+                    detail = data.detail
+                        .map(d => `${(d.loc || []).join('.')} ${d.msg}`.trim())
+                        .join('; ')
+                } else {
+                    detail = String(data.detail)
+                }
+            }
+        } catch {
+            // ignore JSON parse errors
+        }
+        throw new Error(`Execute failed: ${detail}`)
+    }
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()

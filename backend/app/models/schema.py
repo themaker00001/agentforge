@@ -40,6 +40,12 @@ class NodeData(BaseModel):
     streaming:    bool       = False
     toolName:     Optional[str] = None   # for tool nodes
     params:       Optional[dict[str, Any]] = None
+    # Knowledge node fields
+    knowledgeText: Optional[str] = None   # inline context pasted directly in node
+    knowledgeTopK: int = Field(default=3, ge=1, le=10)
+    # Input node fields
+    inputMode:     Optional[str] = "text"   # "text" | "json" | "key_value"
+    inputDefault:  Optional[str] = None     # fallback payload when run input is empty
     # Shell executor fields
     command:      Optional[str] = None   # shell command or script body
     workingDir:   Optional[str] = None   # working directory (relative to sandbox)

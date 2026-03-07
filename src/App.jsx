@@ -32,6 +32,52 @@ function makeEdge(source, target, sourceHandle) {
     }
 }
 
+const VALID_NODE_TYPES = new Set([
+    'input', 'agent', 'tool', 'knowledge', 'output',
+    'shell_exec', 'file_system', 'powerbi', 'condition', 'set_variable',
+    'merge', 'loop', 'webhook', 'debate', 'evaluator', 'parallel',
+    'note', 'media_input',
+])
+
+function normalizeNodeType(rawType, label = '') {
+    const t = String(rawType || '').trim().toLowerCase().replace(/\s+/g, '_')
+    if (VALID_NODE_TYPES.has(t)) return t
+
+    const map = {
+        knowledge_base: 'knowledge',
+        knowledgebase: 'knowledge',
+        kb: 'knowledge',
+        knowledge_node: 'knowledge',
+        input_node: 'input',
+        user_input: 'input',
+        output_node: 'output',
+        final_output: 'output',
+        tool_node: 'tool',
+        evaluator_node: 'evaluator',
+        quality_gate: 'evaluator',
+        grader: 'evaluator',
+        shell: 'shell_exec',
+        shell_executor: 'shell_exec',
+        filesystem: 'file_system',
+        file_system_node: 'file_system',
+        setvariable: 'set_variable',
+        set_variable_node: 'set_variable',
+        web_hook: 'webhook',
+        sticky_note: 'note',
+        note_node: 'note',
+        media: 'media_input',
+        media_node: 'media_input',
+        parallel_node: 'parallel',
+    }
+    if (map[t]) return map[t]
+
+    const name = String(label || '').toLowerCase()
+    if (name.includes('evaluator') || name.includes('quality gate')) return 'evaluator'
+    if (name.includes('knowledge') || name.includes('policy kb')) return 'knowledge'
+    if (name.includes('output') || name.includes('reply')) return 'output'
+    return 'agent'
+}
+
 /* ── Convert FlowGraph from backend → React Flow nodes/edges ─────────────── */
 function convertGraph(flow) {
     const ICONS = {
@@ -39,18 +85,21 @@ function convertGraph(flow) {
         shell_exec: '💻', file_system: '📁', condition: '🔀', set_variable: '📌',
         merge: '🔗', loop: '🔁', webhook: '🪝',
     }
-    const nodes = flow.nodes.map(n => ({
-        id: n.id,
-        type: 'agentNode',
-        position: { x: n.position.x, y: n.position.y },
-        data: {
-            nodeType: n.data.nodeType,
-            label: n.data.label,
-            icon: n.data.icon || ICONS[n.data.nodeType] || '⚙️',
-            model: n.data.model,
-            status: 'idle',
-        },
-    }))
+    const nodes = flow.nodes.map(n => {
+        const nodeType = normalizeNodeType(n.data.nodeType, n.data.label)
+        return {
+            id: n.id,
+            type: 'agentNode',
+            position: { x: n.position.x, y: n.position.y },
+            data: {
+                nodeType,
+                label: n.data.label,
+                icon: n.data.icon || ICONS[nodeType] || '⚙️',
+                model: n.data.model,
+                status: 'idle',
+            },
+        }
+    })
     const edges = flow.edges.map(e => makeEdge(e.source, e.target, e.sourceHandle))
     return { nodes, edges }
 }
@@ -91,7 +140,7 @@ export default function App() {
         nodes: latestNodes.current.map(n => ({
             id: n.id, type: n.type, position: n.position,
             data: {
-                nodeType: n.data.nodeType,
+                nodeType: normalizeNodeType(n.data.nodeType, n.data.label),
                 label: n.data.label,
                 model: n.data.model || selectedModel,
                 systemPrompt: n.data.systemPrompt || '',
@@ -123,6 +172,12 @@ export default function App() {
                 // Tool node
                 toolName: n.data.toolName || null,
                 params: n.data.params || null,
+                // Knowledge node
+                knowledgeText: n.data.knowledgeText || null,
+                knowledgeTopK: n.data.knowledgeTopK ?? 3,
+                // Input node
+                inputMode: n.data.inputMode || 'text',
+                inputDefault: n.data.inputDefault || null,
                 // Debate node
                 debatePersonas: n.data.debatePersonas || null,
                 debateRounds: n.data.debateRounds ?? 1,

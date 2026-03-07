@@ -122,6 +122,34 @@ def _parse_list(text: str) -> list:
     return lines if lines else [text]
 
 
+def _format_input_payload(mode: str, raw: str) -> str:
+    txt = (raw or "").strip()
+    if not txt:
+        return ""
+    m = (mode or "text").strip().lower()
+
+    if m == "json":
+        try:
+            return json.dumps(json.loads(txt), ensure_ascii=False, indent=2)
+        except Exception:
+            return txt
+
+    if m == "key_value":
+        data = {}
+        for line in txt.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if ":" in line:
+                k, v = line.split(":", 1)
+                data[k.strip()] = v.strip()
+        if data:
+            return json.dumps(data, ensure_ascii=False, indent=2)
+        return txt
+
+    return txt
+
+
 def _guess_tool(label: str) -> str:
     label_lower = label.lower()
     if "search" in label_lower or "web" in label_lower:   return "web_search"
@@ -233,7 +261,14 @@ async def execute(
         try:
             #  Input 
             if ntype == NodeType.input:
-                result = user_input or f"[Input: {label}]"
+                if (user_input or "").strip():
+                    result = user_input
+                else:
+                    fallback = _format_input_payload(
+                        node.data.inputMode or "text",
+                        node.data.inputDefault or "",
+                    )
+                    result = fallback or f"[Input: {label}]"
 
             #  Webhook (input trigger) 
             elif ntype == NodeType.webhook:
@@ -492,9 +527,16 @@ async def execute(
             #  Knowledge 
             elif ntype == NodeType.knowledge:
                 yield _emit(_log(LogType.info, "  Retrieving knowledge context", nid))
-                kb_result = know_svc.context_for(user_input, top_k=3)
-                if kb_result:
+                inline = (node.data.knowledgeText or "").strip()
+                top_k = int(node.data.knowledgeTopK or 3)
+                kb_result = know_svc.context_for(user_input, top_k=top_k)
+                if kb_result and inline:
+                    result = f"{kb_result}\n\nInline knowledge:\n{inline}"
+                elif kb_result:
                     result = kb_result
+                elif inline:
+                    result = f"Inline knowledge:\n{inline}"
+                    yield _emit(_log(LogType.info, "  Using inline knowledge text from node.", nid))
                 else:
                     result = context or "No relevant knowledge found."
                     yield _emit(_log(LogType.info, "  No KB docs loaded  passing through upstream context.", nid))

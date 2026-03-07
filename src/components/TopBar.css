@@ -154,7 +154,7 @@
     background: rgba(20, 20, 28, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-sm);
-    padding: 7px 46px 7px 36px;
+    padding: 7px 78px 7px 36px;
     color: var(--text-pri);
     font-family: inherit;
     font-size: 12.5px;
@@ -207,10 +207,6 @@
 }
 
 .prompt-hint {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
     font-size: 9.5px;
     color: var(--text-muted);
     background: var(--bg-raised);
@@ -221,6 +217,122 @@
     font-family: 'SF Mono', monospace;
     letter-spacing: 0.3px;
     z-index: 1;
+}
+
+.prompt-right-controls {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.prompt-expand-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(18, 18, 26, 0.9);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    z-index: 2;
+}
+
+.prompt-expand-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.topbar > .topbar-prompt:nth-child(2):focus-within .prompt-expand-btn {
+    border-color: rgba(124, 58, 237, 0.6);
+    color: var(--accent-light);
+}
+
+.topbar > .topbar-prompt:nth-child(3):focus-within .prompt-expand-btn {
+    border-color: rgba(16, 185, 129, 0.6);
+    color: var(--green);
+}
+
+.prompt-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 6, 12, 0.62);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 220;
+}
+
+.prompt-modal {
+    width: min(900px, calc(100vw - 40px));
+    max-height: calc(100vh - 48px);
+    background: linear-gradient(180deg, rgba(16, 17, 26, 0.96), rgba(10, 11, 18, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.55);
+    padding: 12px;
+    overflow: auto;
+}
+
+.prompt-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.prompt-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.prompt-modal-textarea {
+    width: 100%;
+    min-height: 220px;
+    max-height: calc(100vh - 210px);
+    resize: vertical;
+    background: rgba(9, 9, 15, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 11px 12px;
+    outline: none;
+}
+
+.prompt-modal-textarea:focus {
+    border-color: rgba(99, 102, 241, 0.75);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.prompt-modal-footer {
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.prompt-modal-footer span {
+    font-size: 11px;
+    color: var(--text-muted);
 }
 
 /* ── Actions — spans both grid rows, splits into 2 rows internally ── */
