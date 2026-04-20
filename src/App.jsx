@@ -78,6 +78,66 @@ function normalizeNodeType(rawType, label = '') {
     return 'agent'
 }
 
+function clampMaxTokens(value) {
+    const parsed = Number.parseInt(value, 10)
+    if (Number.isNaN(parsed)) return 4096
+    return Math.min(32000, Math.max(64, parsed))
+}
+
+function inferEvaluatorHandle(edge, nodeById) {
+    const target = nodeById.get(edge.target)
+    const targetLabel = String(target?.data?.label || '').toLowerCase()
+
+    if (targetLabel.includes('fail') || targetLabel.includes('reviser') || targetLabel.includes('revised')) {
+        return 'fail'
+    }
+    if (targetLabel.includes('pass') || targetLabel.includes('approved')) {
+        return 'pass'
+    }
+    return null
+}
+
+function sanitizeGeneratedFlow(flow) {
+    if (!flow?.nodes || !flow?.edges) return flow
+
+    const normalizedNodes = flow.nodes.map(n => ({
+        ...n,
+        data: {
+            ...n.data,
+            nodeType: normalizeNodeType(n?.data?.nodeType, n?.data?.label),
+            maxTokens: clampMaxTokens(n?.data?.maxTokens),
+        },
+    }))
+
+    const nodeById = new Map(normalizedNodes.map(n => [n.id, n]))
+    const outBySource = new Map()
+    for (const e of flow.edges) {
+        const arr = outBySource.get(e.source) || []
+        arr.push(e)
+        outBySource.set(e.source, arr)
+    }
+
+    const normalizedEdges = flow.edges.map(e => {
+        const src = nodeById.get(e.source)
+        const srcType = src?.data?.nodeType
+        if (srcType !== 'evaluator') return e
+
+        if (e.sourceHandle === 'pass' || e.sourceHandle === 'fail') return e
+
+        const inferred = inferEvaluatorHandle(e, nodeById)
+        if (inferred) return { ...e, sourceHandle: inferred }
+
+        const outgoing = outBySource.get(e.source) || []
+        if (outgoing.length === 2) {
+            const idx = outgoing.findIndex(x => x.id === e.id)
+            return { ...e, sourceHandle: idx === 0 ? 'pass' : 'fail' }
+        }
+        return { ...e, sourceHandle: 'pass' }
+    })
+
+    return { ...flow, nodes: normalizedNodes, edges: normalizedEdges }
+}
+
 /* ── Convert FlowGraph from backend → React Flow nodes/edges ─────────────── */
 function convertGraph(flow) {
     const ICONS = {
@@ -96,6 +156,7 @@ function convertGraph(flow) {
                 label: n.data.label,
                 icon: n.data.icon || ICONS[nodeType] || '⚙️',
                 model: n.data.model,
+                maxTokens: clampMaxTokens(n.data.maxTokens),
                 status: 'idle',
             },
         }
@@ -145,7 +206,7 @@ export default function App() {
                 model: n.data.model || selectedModel,
                 systemPrompt: n.data.systemPrompt || '',
                 temperature: n.data.temperature ?? 0.7,
-                maxTokens: n.data.maxTokens ?? 4096,
+                maxTokens: clampMaxTokens(n.data.maxTokens),
                 memory: n.data.memory ?? true,
                 toolsEnabled: n.data.toolsEnabled ?? true,
                 streaming: n.data.streaming ?? false,
@@ -214,7 +275,8 @@ export default function App() {
             const flow = await generateFlow(text, selectedModel)
             if (!flow) { log('err', 'Backend unreachable — is the server running on :8000?'); return }
 
-            const { nodes: newNodes, edges: newEdges } = convertGraph(flow)
+            const fixedFlow = sanitizeGeneratedFlow(flow)
+            const { nodes: newNodes, edges: newEdges } = convertGraph(fixedFlow)
             setNodes(() => { syncNodes(newNodes); return newNodes })
             setEdges(newEdges)
             log('ok', `Flow created — ${newNodes.length} nodes, ${newEdges.length} edges`)

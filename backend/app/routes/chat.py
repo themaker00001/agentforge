@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from app.services.executor import execute
+from app.services import memory as mem_svc
 from app.models.schema import FlowGraph
 
 router = APIRouter()
@@ -27,6 +28,10 @@ def _is_output_node(node_id: str, flow: FlowGraph) -> bool:
         if node.id == node_id:
             return node.data.nodeType.value == "output"
     return False
+
+
+def _flow_uses_memory(flow: FlowGraph) -> bool:
+    return any(getattr(node.data, "memory", False) for node in flow.nodes)
 
 
 @router.post("/chat")
@@ -71,6 +76,9 @@ async def chat_route(req: ChatRequest):
             return
 
         response_text = output_response or last_ok_output or "(No output produced)"
+        if _flow_uses_memory(req.flow):
+            mem_svc.store_short(req.sessionId, "user", req.message)
+            mem_svc.store_short(req.sessionId, "assistant", response_text)
         yield f"data: {json.dumps({'type': 'response', 'message': response_text})}\n\n"
         yield "data: [DONE]\n\n"
 

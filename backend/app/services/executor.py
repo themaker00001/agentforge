@@ -427,6 +427,7 @@ async def execute(
                             node_outputs={},
                             session_id=session_id,
                             model_override=model if not child.data.model else None,
+                            persist_memory=False,
                         )
                     elif ctype == NodeType.tool:
                         requested_tool = child.data.toolName or _guess_tool(child.data.label)
@@ -490,6 +491,7 @@ async def execute(
                         node_outputs=node_outputs,
                         session_id=session_id,
                         model_override=model if not node.data.model else None,
+                        persist_memory=False,
                     ):
                         chunks.append(chunk)
                         yield _emit(_log(LogType.chunk, chunk, nid))
@@ -502,6 +504,7 @@ async def execute(
                         node_outputs=node_outputs,
                         session_id=session_id,
                         model_override=model if not node.data.model else None,
+                        persist_memory=False,
                     )
 
             #  Tool 
@@ -589,6 +592,7 @@ async def execute(
                             node=child, user_input=str(item), context=str(item),
                             node_outputs=node_outputs, session_id=session_id,
                             model_override=model if not child.data.model else None,
+                            persist_memory=False,
                         )
                         loop_results.append(cr)
                 result = json.dumps(loop_results) if loop_results else context

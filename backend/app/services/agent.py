@@ -85,6 +85,7 @@ async def run_agent(
     session_id: str,
     model_override: str | None = None,
     context: str | None = None,
+    persist_memory: bool = True,
 ) -> str:
     """Execute an agent node and return its output string."""
     data = node.data
@@ -96,7 +97,7 @@ async def run_agent(
         max_tokens=data.maxTokens,
     )
 
-    if data.memory:
+    if data.memory and persist_memory:
         mem_svc.store_short(session_id, "user",      user_input or context)
         mem_svc.store_short(session_id, "assistant", response)
 
@@ -110,6 +111,7 @@ async def run_agent_stream(
     session_id: str,
     model_override: str | None = None,
     context: str | None = None,
+    persist_memory: bool = True,
 ):
     """
     Async generator that streams text chunks from the LLM.
@@ -128,6 +130,6 @@ async def run_agent_stream(
         yield chunk
 
     response = "".join(full_response)
-    if data.memory:
+    if data.memory and persist_memory:
         mem_svc.store_short(session_id, "user",      user_input or context or "")
         mem_svc.store_short(session_id, "assistant", response)
