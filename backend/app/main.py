@@ -11,7 +11,7 @@ load_dotenv()
 
 # Import routers
 from app.routes import flow, execute, models, knowledge, tools, chat, webhook, deploy
-from app.routes import agent_tasks, runs, media, schedules, stats
+from app.routes import agent_tasks, runs, media, schedules, stats, graph_memory
 from app.services import background_agent as bg_svc
 from app.services import deploy_store, run_store, schedule_store
 from app.services import scheduler as scheduler_svc
@@ -85,6 +85,7 @@ app.include_router(runs.router)
 app.include_router(media.router)
 app.include_router(schedules.router)
 app.include_router(stats.router)
+app.include_router(graph_memory.router, prefix="/api")
 
 
 @app.get("/")

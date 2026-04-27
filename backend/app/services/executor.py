@@ -26,10 +26,11 @@ from app.services import powerbi_agent as pbi_svc
 from app.services import cost_tracker as ct
 from app.services import run_store
 from app.services import media_processor
+from app.services import graph_memory as gm_svc
 from app.llm.registry import get_llm
 
 # Node types that incur LLM cost
-_LLM_NODE_TYPES = {NodeType.agent, NodeType.output, NodeType.debate, NodeType.evaluator}
+_LLM_NODE_TYPES = {NodeType.agent, NodeType.output, NodeType.debate, NodeType.evaluator, NodeType.graph_memory}
 
 # Sentinel used to mark a node whose branch was not taken
 _SKIPPED = "__SKIPPED__"
@@ -658,6 +659,28 @@ async def execute(
                 else:
                     result = "[No media file or URL configured]"
                     yield _emit(_log(LogType.warn, result, nid))
+
+            #  Graph Memory 
+            elif ntype == NodeType.graph_memory:
+                op = node.data.graphMemoryOp or "both"
+                depth = node.data.graphMemoryDepth or 2
+                eff_model = node.data.model or model
+                api_key = node.data.apiKey
+                
+                res_parts = []
+                if op in ("extract", "both"):
+                    yield _emit(_log(LogType.info, "  Extracting entities & relations...", nid))
+                    ext_res = await gm_svc.extract_from_text(context, eff_model, api_key)
+                    yield _emit(_log(LogType.info, f"  {ext_res}", nid))
+                    res_parts.append(ext_res)
+                
+                if op in ("query", "both"):
+                    yield _emit(_log(LogType.info, f"  Querying graph (depth={depth})...", nid))
+                    q_res = await gm_svc.search_graph(user_input or context, depth, eff_model, api_key)
+                    res_parts.append(q_res)
+                
+                result = "\n\n".join(res_parts)
+                yield _emit(_log(LogType.ok, f"  Graph memory ready: {_first_sentence(result)}", nid))
 
             #  Fallback 
             else:

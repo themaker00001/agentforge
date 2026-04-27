@@ -22,6 +22,7 @@ const NODE_CONFIG = {
     parallel: { label: 'Parallel', color: '#06b6d4' },
     note: { label: 'Note', color: '#78716c' },
     media_input: { label: 'Media Input', color: '#8b5cf6' },
+    graph_memory: { label: 'Graph Memory', color: '#6366f1' },
 }
 
 function getCostColor(costUsd) {
@@ -65,6 +66,7 @@ function getNodeBadge(data) {
         case 'parallel': return 'Fan-out'
         case 'note': return ''
         case 'media_input': return data.mediaType?.toUpperCase() || 'Media'
+        case 'graph_memory': return data.graphMemoryOp === 'extract' ? 'Extract' : (data.graphMemoryOp === 'query' ? 'Query' : 'Extract+Query')
         default: return ''
     }
 }

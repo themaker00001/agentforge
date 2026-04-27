@@ -24,6 +24,7 @@ class NodeType(str, Enum):
     parallel     = "parallel"      # Fan-out: run child branches concurrently
     note         = "note"          # Visual sticky note (no execution)
     media_input  = "media_input"   # Upload image / audio / PDF into the pipeline
+    graph_memory = "graph_memory"  # Persistent knowledge graph memory
 
 
 class NodeData(BaseModel):
@@ -43,6 +44,9 @@ class NodeData(BaseModel):
     # Knowledge node fields
     knowledgeText: Optional[str] = None   # inline context pasted directly in node
     knowledgeTopK: int = Field(default=3, ge=1, le=10)
+    # Graph Memory fields
+    graphMemoryOp:    Optional[Literal["extract", "query", "both"]] = "both"
+    graphMemoryDepth: int = Field(default=2, ge=1, le=5)
     # Input node fields
     inputMode:     Optional[str] = "text"   # "text" | "json" | "key_value"
     inputDefault:  Optional[str] = None     # fallback payload when run input is empty

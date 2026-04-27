@@ -130,7 +130,7 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
         input: '💬', agent: '🤖', tool: '🔧', knowledge: '📚', output: '📤',
         shell_exec: '💻', file_system: '📁', powerbi: '📊',
         condition: '🔀', set_variable: '📌', merge: '🔗', loop: '🔁', webhook: '🪝',
-        media_input: '🖼️',
+        media_input: '🖼️', graph_memory: '🕸️',
     }
 
     const update = (key, value) => onUpdate(node.id, { ...data, [key]: value })
@@ -151,11 +151,12 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
     const isParallel    = data.nodeType === 'parallel'
     const isNote        = data.nodeType === 'note'
     const isMediaInput  = data.nodeType === 'media_input'
+    const isGraphMemory = data.nodeType === 'graph_memory'
 
     // isLocal = nodes that don't show the standard LLM config block
     const isLocal = isShell || isFS || isPowerBI || isTool || isInput || isKnowledge
                  || isCondition || isSetVariable || isMerge || isLoop || isWebhook
-                 || isParallel || isNote || isMediaInput
+                 || isParallel || isNote || isMediaInput || isGraphMemory
 
     const p = data.params || {}
     const toolName = data.toolName || ''
@@ -206,6 +207,50 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
                 {/* ── Media Input config ── */}
                 {isMediaInput && (
                     <MediaInputConfig data={data} update={update} nodeId={node.id} />
+                )}
+
+                {/* ── Graph Memory config ── */}
+                {isGraphMemory && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                            Graph Memory extracts entities and relationships from text to build a persistent long-term knowledge graph.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">Operation</label>
+                            <select
+                                className="form-select"
+                                value={data.graphMemoryOp || 'both'}
+                                onChange={e => update('graphMemoryOp', e.target.value)}
+                                onKeyDown={stopKeys}
+                            >
+                                <option value="extract">📥 Extract only (save context to graph)</option>
+                                <option value="query">🔍 Query only (retrieve from graph)</option>
+                                <option value="both">🔄 Both (save then retrieve)</option>
+                            </select>
+                        </div>
+                        {(data.graphMemoryOp === 'query' || data.graphMemoryOp === 'both' || !data.graphMemoryOp) && (
+                            <div className="cp-group">
+                                <label className="form-label">Search Depth: <strong>{data.graphMemoryDepth ?? 2}</strong> hops</label>
+                                <input
+                                    type="range" min="1" max="5" step="1"
+                                    value={data.graphMemoryDepth ?? 2}
+                                    onChange={e => update('graphMemoryDepth', parseInt(e.target.value))}
+                                    onKeyDown={stopKeys}
+                                />
+                                <div className="form-hint">How many relationships away to explore from identified entities.</div>
+                            </div>
+                        )}
+                        <div className="cp-group">
+                            <label className="form-label">Model for Extraction/Reasoning</label>
+                            <input
+                                className="form-input"
+                                list={`${node.id}-gm-model-list`}
+                                value={data.model || 'ollama:llama3:8b'}
+                                onChange={e => update('model', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                    </>
                 )}
 
                 {/* ── Input node config ── */}

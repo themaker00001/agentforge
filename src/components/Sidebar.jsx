@@ -33,6 +33,7 @@ const EMOJI_BY_ICON = {
     powerbi: '📈',
     // Knowledge
     knowledge: '📚',
+    graph_memory: '🕸️',
     doc_loader: '📥',
     // Inputs / Outputs
     input: '💬',
@@ -95,6 +96,7 @@ const LIBRARY = [
         section: 'Knowledge',
         items: [
             { type: 'knowledge', label: 'Vector Store', iconType: 'knowledge' },
+            { type: 'graph_memory', label: 'Graph Memory', iconType: 'graph_memory', badge: 'NEW' },
             { type: 'knowledge', label: 'Doc Loader', iconType: 'doc_loader' },
         ],
     },
