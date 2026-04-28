@@ -2,7 +2,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(4px);
+    /* flat */
     z-index: 200;
     display: flex;
     align-items: flex-start;
@@ -13,7 +13,7 @@
 .dash-panel {
     background: var(--bg-surface, #1a1a2e);
     border: 1px solid var(--border, rgba(255,255,255,0.08));
-    border-radius: 14px;
+    border-radius: var(--radius);
     width: 680px;
     max-width: 95vw;
     max-height: 82vh;
@@ -68,7 +68,7 @@
 .dash-card {
     background: var(--bg-raised, #1e1e2e);
     border: 1px solid var(--border, rgba(255,255,255,0.06));
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 12px 14px;
     display: flex;
     align-items: flex-start;

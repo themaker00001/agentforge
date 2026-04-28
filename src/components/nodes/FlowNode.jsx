@@ -1,28 +1,28 @@
 import { Handle, Position } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
-import NodeIcon from '../NodeIcon'
 import './NodeStyles.css'
 
+// Colors reference CSS vars so Tweaks panel updates nodes live
 const NODE_CONFIG = {
-    input: { label: 'Input', color: '#22c55e' },
-    agent: { label: 'Agent', color: '#6366f1' },
-    tool: { label: 'Tool', color: '#3b82f6' },
-    knowledge: { label: 'Knowledge', color: '#f59e0b' },
-    output: { label: 'Output', color: '#ec4899' },
-    shell_exec: { label: 'Shell', color: '#a855f7' },
-    file_system: { label: 'File System', color: '#f97316' },
-    powerbi: { label: 'Power BI', color: '#f59e0b' },
-    condition: { label: 'Condition', color: '#14b8a6' },
-    set_variable: { label: 'Set Variable', color: '#8b5cf6' },
-    merge: { label: 'Merge', color: '#0ea5e9' },
-    loop: { label: 'Loop', color: '#f43f5e' },
-    webhook: { label: 'Webhook', color: '#10b981' },
-    debate: { label: 'Debate', color: '#d946ef' },
-    evaluator: { label: 'Evaluator', color: '#f59e0b' },
-    parallel: { label: 'Parallel', color: '#06b6d4' },
-    note: { label: 'Note', color: '#78716c' },
-    media_input: { label: 'Media Input', color: '#8b5cf6' },
-    graph_memory: { label: 'Graph Memory', color: '#6366f1' },
+    input:        { label: 'Input',        color: 'var(--nc-io)' },
+    output:       { label: 'Output',       color: 'var(--nc-io)' },
+    webhook:      { label: 'Webhook',      color: 'var(--nc-io)' },
+    media_input:  { label: 'Media Input',  color: 'var(--nc-io)' },
+    agent:        { label: 'Agent',        color: 'var(--nc-agent)' },
+    debate:       { label: 'Debate',       color: 'var(--nc-agent)' },
+    graph_memory: { label: 'Graph Memory', color: 'var(--nc-agent)' },
+    tool:         { label: 'Tool',         color: 'var(--nc-tool)' },
+    knowledge:    { label: 'Knowledge',    color: 'var(--nc-knowledge)' },
+    condition:    { label: 'Condition',    color: 'var(--nc-flow)' },
+    set_variable: { label: 'Set Variable', color: 'var(--nc-flow)' },
+    merge:        { label: 'Merge',        color: 'var(--nc-flow)' },
+    loop:         { label: 'Loop',         color: 'var(--nc-flow)' },
+    parallel:     { label: 'Parallel',     color: 'var(--nc-flow)' },
+    evaluator:    { label: 'Evaluator',    color: 'var(--nc-special)' },
+    shell_exec:   { label: 'Shell',        color: 'var(--nc-special)' },
+    file_system:  { label: 'File System',  color: 'var(--nc-special)' },
+    powerbi:      { label: 'Power BI',     color: 'var(--nc-special)' },
+    note:         { label: 'Note',         color: 'var(--nc-flow)' },
 }
 
 function getCostColor(costUsd) {
@@ -106,64 +106,57 @@ export function FlowNode({ data, selected }) {
     const isMediaInput = data.nodeType === 'media_input'
     const hasDualOut = isCondition || isEvaluator
 
-    // Dual-output handle labels
     const dualLabels = isEvaluator
-        ? { top: { id: 'pass', color: '#22c55e', char: '✓' }, bottom: { id: 'fail', color: '#ef4444', char: '✗' } }
+        ? { top: { id: 'pass', color: '#22c55e', char: 'OK' }, bottom: { id: 'fail', color: '#ef4444', char: 'FAIL' } }
         : { top: { id: 'true', color: '#22c55e', char: 'T' }, bottom: { id: 'false', color: '#ef4444', char: 'F' } }
 
     return (
         <div
-            className={`flow-node fn-${data.nodeType}${selected ? ' selected' : ''}${isRunning ? ' running' : ''}`}
+            className={`flow-node fn-${data.nodeType} style-${data.nodeStyle || 'card'}${selected ? ' selected' : ''}${isRunning ? ' running' : ''}`}
             style={{ '--node-color': cfg.color }}
         >
-            {/* Input handle — media_input is source-only, no target */}
+            {/* Handles */}
             {data.nodeType !== 'input' && data.nodeType !== 'webhook' && !isParallel && !isMediaInput && (
                 <Handle type="target" position={Position.Left} className="fn-handle fn-handle-in" />
             )}
-            {/* Parallel can have multiple incoming for fan-in at merge, one fan-out */}
             {isParallel && (
                 <Handle type="target" position={Position.Left} className="fn-handle fn-handle-in" />
             )}
 
-            <div className="fn-header">
-                <div className="fn-icon"><NodeIcon type={data.iconType || data.nodeType} size={14} /></div>
-                <div className="fn-info">
-                    <div className="fn-title">{data.label}</div>
-                    <div className="fn-type">{cfg.label} node</div>
-                </div>
-                <StatusDot status={data.status || 'idle'} />
-                <button
-                    className="fn-delete"
-                    title="Delete node"
-                    onClick={(e) => { e.stopPropagation(); data.onDelete?.() }}
-                >
-                    <Trash2 size={11} />
+            {/* Row 1 — [NUM] TYPE · IDLE/RUN */}
+            <div className="fn-head">
+                {data.nodeNum && <span className="fn-num">{data.nodeNum}</span>}
+                <span className="fn-kind">{cfg.label}</span>
+                <span className={`fn-status-text${isRunning ? ' running' : ''}`}>
+                    {isRunning ? '● RUN' : 'IDLE'}
+                </span>
+                <button className="fn-delete" title="Delete" onClick={e => { e.stopPropagation(); data.onDelete?.() }}>
+                    <Trash2 size={10} />
                 </button>
             </div>
 
-            <div className="fn-footer">
-                <span className="fn-tag">{cfg.label}</span>
-                {badge && <span className="fn-model">{badge}</span>}
-                {isEvaluator && data.evaluatorThreshold && (
-                    <span className="fn-model">≥{data.evaluatorThreshold}</span>
-                )}
-                {data.nodeType === 'debate' && data.debatePersonas && (
-                    <span className="fn-model">{data.debatePersonas.length} voices</span>
-                )}
+            {/* Row 2 — big display title */}
+            <div className="fn-body">
+                <div className="fn-title">{data.label}</div>
+                {badge && <div className="fn-sub">{badge}</div>}
             </div>
 
-            {/* Cost / latency heatmap metrics bar */}
+            {/* Row 3 — tag chips */}
+            <div className="fn-meta">
+                <span className="fn-tag">{cfg.label}</span>
+                {isEvaluator && data.evaluatorThreshold && <span className="fn-chip">≥{data.evaluatorThreshold}</span>}
+                {data.nodeType === 'debate' && data.debatePersonas && <span className="fn-chip">{data.debatePersonas.length} voices</span>}
+            </div>
+
+            {/* Metrics bar */}
             {data.metrics && (
                 <div className="fn-metrics">
-                    <span
-                        className="fn-metric-cost"
-                        style={{ color: getCostColor(data.metrics.cost_usd) }}
-                    >
+                    <span className="fn-metric-cost" style={{ color: getCostColor(data.metrics.cost_usd) }}>
                         ${data.metrics.cost_usd?.toFixed(5) ?? '0.00000'}
                     </span>
                     <span className="fn-metric-latency">{data.metrics.latency_ms}ms</span>
                     <span className="fn-metric-tokens">
-                        {data.metrics.tokens_in}→{data.metrics.tokens_out} tok
+                        {data.metrics.tokens_in}→{data.metrics.tokens_out}
                     </span>
                 </div>
             )}
@@ -173,11 +166,11 @@ export function FlowNode({ data, selected }) {
                 <>
                     <Handle type="source" position={Position.Right} id={dualLabels.top.id}
                         className="fn-handle fn-handle-out fn-handle-true"
-                        style={{ top: '30%', background: dualLabels.top.color, borderColor: dualLabels.top.color }} />
+                        style={{ top: '30%' }} />
                     <span className="fn-handle-label fn-handle-label-true">{dualLabels.top.char}</span>
                     <Handle type="source" position={Position.Right} id={dualLabels.bottom.id}
                         className="fn-handle fn-handle-out fn-handle-false"
-                        style={{ top: '70%', background: dualLabels.bottom.color, borderColor: dualLabels.bottom.color }} />
+                        style={{ top: '70%' }} />
                     <span className="fn-handle-label fn-handle-label-false">{dualLabels.bottom.char}</span>
                 </>
             ) : data.nodeType !== 'output' && (

@@ -1,47 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, ChevronDown, Search, X } from 'lucide-react'
+import NodeIcon from './NodeIcon'
 import './Sidebar.css'
-
-const EMOJI_BY_ICON = {
-    // Agents
-    agent: '🤖',
-    chain: '⛓️',
-    react: '🧠',
-    // AI-native
-    debate: '🗣️',
-    evaluator: '🧪',
-    // Flow control
-    condition: '🔀',
-    set_variable: '📌',
-    parallel: '⚡',
-    merge: '🔗',
-    loop: '🔁',
-    note: '🗒️',
-    // Tools
-    web_search: '🔎',
-    tool: '🛠️',
-    http_request: '🌐',
-    file_reader: '📄',
-    calculator: '🧮',
-    json_parse: '🧾',
-    csv_reader: '📊',
-    text_splitter: '✂️',
-    date_time: '🕒',
-    // Local
-    shell_exec: '💻',
-    file_system: '📁',
-    powerbi: '📈',
-    // Knowledge
-    knowledge: '📚',
-    graph_memory: '🕸️',
-    doc_loader: '📥',
-    // Inputs / Outputs
-    input: '💬',
-    file_input: '📎',
-    webhook: '🪝',
-    media_input: '🖼️',
-    output: '📤',
-}
 
 const LIBRARY = [
     {
@@ -118,13 +78,10 @@ const LIBRARY = [
 ]
 
 function NodeItem({ item, collapsed }) {
-    const emoji = item.emoji || EMOJI_BY_ICON[item.iconType] || '⚙️'
-
     const onDragStart = (e) => {
         e.dataTransfer.setData('application/agentforge-type', item.type)
         e.dataTransfer.setData('application/agentforge-label', item.label)
         e.dataTransfer.setData('application/agentforge-iconType', item.iconType)
-        e.dataTransfer.setData('application/agentforge-icon', emoji)
         e.dataTransfer.effectAllowed = 'move'
     }
 
@@ -135,7 +92,9 @@ function NodeItem({ item, collapsed }) {
             onDragStart={onDragStart}
             title={item.label}
         >
-            <div className="si-icon" aria-hidden>{emoji}</div>
+            <div className="si-icon" aria-hidden>
+                <NodeIcon type={item.iconType} size={13} />
+            </div>
             {!collapsed && (
                 <>
                     <span className="si-label">{item.label}</span>

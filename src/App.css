@@ -4,12 +4,12 @@
     height: 100vh;
     overflow: hidden;
     padding-top: var(--topbar-h);
+    padding-left: var(--rail-w);
 }
 
 .app-body {
     display: flex;
     flex: 1;
     overflow: hidden;
-    /* leave space for the collapsed console header at bottom */
     padding-bottom: 38px;
 }

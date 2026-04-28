@@ -1,6 +1,8 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNodesState, useEdgesState } from '@xyflow/react'
+import Rail from './components/Rail'
 import TopBar from './components/TopBar'
+import Tweaks from './components/Tweaks'
 import Sidebar from './components/Sidebar'
 import FlowCanvas from './components/FlowCanvas'
 import ConfigPanel from './components/ConfigPanel'
@@ -28,7 +30,7 @@ function makeEdge(source, target, sourceHandle) {
         source, target,
         ...(sourceHandle ? { sourceHandle } : {}),
         type: 'smoothstep', animated: true,
-        style: { stroke: '#6366f1', strokeWidth: 2, opacity: 0.7 },
+        style: { stroke: '#c8ff00', strokeWidth: 1.5, opacity: 0.7 },
     }
 }
 
@@ -185,6 +187,34 @@ export default function App() {
     const [showRuns, setShowRuns] = useState(false)
     const [showDashboard, setShowDashboard] = useState(false)
     const [sessionId, setSessionId] = useState(() => createSessionId())
+    const [tweaks, setTweaksState] = useState({
+        accent: '#c8ff00', theme: 'dark', nodeStyle: 'card',
+        canvasBg: 'dots', density: 'relaxed', grain: false,
+        // Node category colors
+        ncAgent: '#6366f1', ncTool: '#3b82f6', ncKnowledge: '#f59e0b',
+        ncFlow: '#14b8a6', ncIO: '#22c55e', ncSpecial: '#d946ef',
+        // UI palette colors
+        uiBg: '#000000', uiSurface: '#0a0a0b', uiBorder: '#232327',
+    })
+    const [tweaksOpen, setTweaksOpen] = useState(false)
+    const setTweak = (k, v) => setTweaksState(prev => ({ ...prev, [k]: v }))
+
+    useEffect(() => {
+        const r = document.documentElement
+        r.dataset.theme = tweaks.theme
+        r.style.setProperty('--signal', tweaks.accent)
+        // Node category colors
+        r.style.setProperty('--nc-agent',     tweaks.ncAgent)
+        r.style.setProperty('--nc-tool',      tweaks.ncTool)
+        r.style.setProperty('--nc-knowledge', tweaks.ncKnowledge)
+        r.style.setProperty('--nc-flow',      tweaks.ncFlow)
+        r.style.setProperty('--nc-io',        tweaks.ncIO)
+        r.style.setProperty('--nc-special',   tweaks.ncSpecial)
+        // UI palette colors
+        r.style.setProperty('--ui-bg',      tweaks.uiBg)
+        r.style.setProperty('--ui-surface', tweaks.uiSurface)
+        r.style.setProperty('--ui-border',  tweaks.uiBorder)
+    }, [tweaks])
 
     const consoleRef = useRef(null)
     const abortRef = useRef(null)
@@ -420,12 +450,11 @@ export default function App() {
     }, [setNodes])
 
     return (
-        <div className="app-root">
-            <div className="mesh-bg" />
+        <div className={`app-root density-${tweaks.density}`}>
+            <Rail active="flow" setActive={() => {}} onSettings={() => setTweaksOpen(o => !o)} />
             <TopBar
                 onGenerate={handleGenerate}
                 onRun={handleRun}
-                onRunBackground={handleRunBackground}
                 onPreview={() => setChatOpen(true)}
                 selectedModel={selectedModel}
                 onModelChange={setSelectedModel}
@@ -440,9 +469,10 @@ export default function App() {
                 onImport={handleImport}
                 listSavedFlows={listSavedFlows}
                 onShowTemplates={() => setShowTemplates(true)}
-                onDeploy={() => setShowDeploy(true)}
                 onShowRuns={() => setShowRuns(true)}
                 onShowDashboard={() => setShowDashboard(true)}
+                onConsoleToggle={() => setConsoleCollapsed(c => !c)}
+                onTweaksToggle={() => setTweaksOpen(o => !o)}
             />
 
             <div className="app-body">
@@ -466,6 +496,9 @@ export default function App() {
                     onDeleteNode={handleDeleteNode}
                     setEdges={setEdges}
                     onShowTemplates={() => setShowTemplates(true)}
+                    canvasBg={tweaks.canvasBg}
+                    nodeStyle={tweaks.nodeStyle}
+                    showGrain={tweaks.grain}
                 />
 
                 {selectedNode && (
@@ -524,6 +557,13 @@ export default function App() {
                     onClose={() => setChatOpen(false)}
                 />
             )}
+
+            <Tweaks
+                tweaks={tweaks}
+                setTweak={setTweak}
+                open={tweaksOpen}
+                onClose={() => setTweaksOpen(false)}
+            />
         </div>
     )
 }

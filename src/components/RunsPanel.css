@@ -4,7 +4,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(4px);
+    /* flat */
     z-index: 200;
     display: flex;
     align-items: flex-start;
@@ -15,7 +15,7 @@
 .runs-panel {
     background: var(--bg-surface, #1a1a2e);
     border: 1px solid var(--border, rgba(255,255,255,0.08));
-    border-radius: 14px;
+    border-radius: var(--radius);
     width: 720px;
     max-width: 95vw;
     max-height: 80vh;
@@ -73,20 +73,20 @@
 .run-card {
     background: var(--bg-raised, #1e1e2e);
     border: 1px solid var(--border, rgba(255,255,255,0.06));
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 9px 11px;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
 }
 
 .run-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-    background: rgba(99, 102, 241, 0.05);
+    border-color: rgba(200, 255, 0, 0.35);
+    background: rgba(200, 255, 0, 0.04);
 }
 
 .run-card.selected {
-    border-color: var(--accent, #6366f1);
-    background: rgba(99, 102, 241, 0.08);
+    border-color: var(--signal);
+    background: rgba(200, 255, 0, 0.06);
 }
 
 .run-card-header {
@@ -136,7 +136,7 @@
     color: var(--text-muted, #64748b);
     background: var(--bg-surface, #1a1a2e);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius);
     border: 1px solid var(--border, rgba(255,255,255,0.06));
 }
 
@@ -197,7 +197,7 @@
 .run-input-box {
     background: var(--bg-raised, #1e1e2e);
     border: 1px solid var(--border, rgba(255,255,255,0.06));
-    border-radius: 6px;
+    border-radius: var(--radius);
     padding: 7px 9px;
     font-size: 11px;
     color: var(--text-primary, #e2e8f0);

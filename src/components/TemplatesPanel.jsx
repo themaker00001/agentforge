@@ -2,32 +2,21 @@
  * TemplatesPanel — pre-built one-click workflow templates.
  * Each template is a complete { nodes, edges } object in React Flow format.
  */
-import { X } from 'lucide-react'
+import { X, ArrowRight } from 'lucide-react'
+import NodeIcon from './NodeIcon'
 import './TemplatesPanel.css'
 
-const EMOJI_BY_ICON = {
-    input: '💬',
-    output: '📤',
-    agent: '🤖',
-    tool: '🛠️',
-    web_search: '🔎',
-    debate: '🗣️',
-    evaluator: '🧪',
-    parallel: '⚡',
-    merge: '🔗',
-    set_variable: '📌',
-    calculator: '🧮',
-    json_parse: '🧾',
-    csv_reader: '📊',
-    shell_exec: '💻',
-    note: '🗒️',
+// ── Icon emoji lookup ──────────────────────────────────────────────────────
+const ICON_MAP = {
+    input: '💬', agent: '🤖', tool: '🔍', knowledge: '📚', output: '📤',
+    shell_exec: '💻', file_system: '📁', condition: '🔀', set_variable: '📌',
+    merge: '🔗', loop: '🔁', webhook: '🪝', debate: '🗣️', evaluator: '⚖️',
+    parallel: '⚡', note: '📝', media_input: '🖼️',
+    web_search: '🌐', http_request: '📡', code_runner: '💻', file_reader: '📄',
+    summarize: '📋', json_parse: '{ }', csv_reader: '📊', text_splitter: '✂️',
+    calculator: '🔢', datetime_helper: '🕐',
 }
-
-function iconEmoji(icon) {
-    if (!icon) return '⚙️'
-    if (/\p{Emoji}/u.test(icon)) return icon
-    return EMOJI_BY_ICON[icon] || '⚙️'
-}
+function iconEmoji(type) { return ICON_MAP[type] || '⚙️' }
 
 // ── Helper to build a standard node data object ────────────────────────────
 function nd(type, label, iconType, extra = {}) {
@@ -55,7 +44,7 @@ function n(id, type, x, y, label, iconType, extra = {}) {
 function e(id, source, target, handle) {
     return {
         id, source, target, type: 'smoothstep', animated: true,
-        style: { stroke: '#6366f1', strokeWidth: 2, opacity: 0.7 },
+        style: { stroke: '#c8ff00', strokeWidth: 1.5, opacity: 0.6 },
         ...(handle ? { sourceHandle: handle } : {}),
     }
 }
@@ -223,31 +212,17 @@ const TEMPLATES = [
     },
 ]
 
-const TAG_COLORS = {
-    beginner: { bg: '#dcfce7', text: '#15803d' },
-    intermediate: { bg: '#dbeafe', text: '#1d4ed8' },
-    advanced: { bg: '#fce7f3', text: '#be185d' },
-    'ai-native': { bg: '#ede9fe', text: '#6d28d9' },
-    search: { bg: '#f3f4f6', text: '#374151' },
-    parallel: { bg: '#cffafe', text: '#0e7490' },
-    writing: { bg: '#fef3c7', text: '#92400e' },
-    quality: { bg: '#fff7ed', text: '#c2410c' },
-    data: { bg: '#f0fdf4', text: '#166534' },
-    tools: { bg: '#f0f9ff', text: '#0369a1' },
-    code: { bg: '#f5f3ff', text: '#5b21b6' },
-    analysis: { bg: '#fdf4ff', text: '#7e22ce' },
-}
-
 export default function TemplatesPanel({ onLoad, onClose }) {
     return (
         <div className="tpl-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
             <div className="tpl-panel">
                 <div className="tpl-header">
                     <div>
-                        <div className="tpl-title">Flow Templates</div>
+                        <div className="tpl-eyebrow">FLOW TEMPLATES</div>
+                        <div className="tpl-title">Start from a template.</div>
                         <div className="tpl-subtitle">{TEMPLATES.length} pre-built workflows — click to load</div>
                     </div>
-                    <button className="icon-btn" onClick={onClose}><X size={16} /></button>
+                    <button className="icon-btn" onClick={onClose}><X size={13} /></button>
                 </div>
 
                 <div className="tpl-grid">
@@ -258,26 +233,20 @@ export default function TemplatesPanel({ onLoad, onClose }) {
                             onClick={() => { onLoad(tpl); onClose() }}
                             style={{ '--tpl-color': tpl.color }}
                         >
-                            <div className="tpl-card-icon">{iconEmoji(tpl.icon || tpl.id)}</div>
+                            <div className="tpl-card-icon">
+                                <NodeIcon type={tpl.icon} size={18} />
+                            </div>
                             <div className="tpl-card-body">
                                 <div className="tpl-card-name">{tpl.name}</div>
                                 <div className="tpl-card-desc">{tpl.description}</div>
                                 <div className="tpl-card-tags">
-                                    {tpl.tags.map(tag => {
-                                        const c = TAG_COLORS[tag] || { bg: '#f3f4f6', text: '#374151' }
-                                        return (
-                                            <span key={tag} className="tpl-tag"
-                                                style={{ background: c.bg, color: c.text }}>
-                                                {tag}
-                                            </span>
-                                        )
-                                    })}
-                                    <span className="tpl-node-count">
-                                        {tpl.nodes.length} nodes
-                                    </span>
+                                    {tpl.tags.map(tag => (
+                                        <span key={tag} className="tpl-tag">{tag}</span>
+                                    ))}
+                                    <span className="tpl-node-count">{tpl.nodes.length} nodes</span>
                                 </div>
                             </div>
-                            <div className="tpl-card-arrow">→</div>
+                            <ArrowRight size={14} className="tpl-card-arrow" />
                         </button>
                     ))}
                 </div>
