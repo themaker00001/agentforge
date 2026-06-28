@@ -56,8 +56,15 @@
 .cr-name    { color: var(--fg2); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .cr-stat    { color: var(--fg2); }
 
-/* ── ReactFlow fills remaining space ── */
-.flow-canvas-wrap .react-flow {
+/* ── Drop zone wrapper fills remaining space and receives drag events ── */
+.rf-drop-zone {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.rf-drop-zone .react-flow {
   flex: 1;
 }
 

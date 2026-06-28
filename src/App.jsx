@@ -38,7 +38,7 @@ const VALID_NODE_TYPES = new Set([
     'input', 'agent', 'tool', 'knowledge', 'output',
     'shell_exec', 'file_system', 'powerbi', 'condition', 'set_variable',
     'merge', 'loop', 'webhook', 'debate', 'evaluator', 'parallel',
-    'note', 'media_input',
+    'note', 'media_input', 'semantic_router', 'self_correction', 'react_agent'
 ])
 
 function normalizeNodeType(rawType, label = '') {
@@ -145,7 +145,8 @@ function convertGraph(flow) {
     const ICONS = {
         input: '💬', agent: '🤖', tool: '🔍', knowledge: '📚', output: '📤',
         shell_exec: '💻', file_system: '📁', condition: '🔀', set_variable: '📌',
-        merge: '🔗', loop: '🔁', webhook: '🪝',
+        merge: '🔗', loop: '🔁', webhook: '🪝', semantic_router: '🔀',
+        self_correction: '🔁', react_agent: '⚡',
     }
     const nodes = flow.nodes.map(n => {
         const nodeType = normalizeNodeType(n.data.nodeType, n.data.label)

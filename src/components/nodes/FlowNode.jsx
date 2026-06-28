@@ -23,6 +23,9 @@ const NODE_CONFIG = {
     file_system:  { label: 'File System',  color: 'var(--nc-special)' },
     powerbi:      { label: 'Power BI',     color: 'var(--nc-special)' },
     note:         { label: 'Note',         color: 'var(--nc-flow)' },
+    semantic_router: { label: 'Semantic Router', color: 'var(--nc-flow)' },
+    self_correction: { label: 'Self-Correct',  color: 'var(--nc-agent)' },
+    react_agent:  { label: 'ReAct Agent',  color: 'var(--nc-agent)' },
 }
 
 function getCostColor(costUsd) {
@@ -42,6 +45,9 @@ function getNodeBadge(data) {
         case 'output':
         case 'debate':
         case 'evaluator':
+        case 'self_correction':
+        case 'react_agent':
+        case 'semantic_router':
             return data.model ? data.model.split(':').slice(1).join(':') || data.model : 'LLM'
         case 'tool': {
             const toolMap = {
@@ -104,11 +110,14 @@ export function FlowNode({ data, selected }) {
     const isEvaluator = data.nodeType === 'evaluator'
     const isParallel = data.nodeType === 'parallel'
     const isMediaInput = data.nodeType === 'media_input'
+    const isRouter = data.nodeType === 'semantic_router'
     const hasDualOut = isCondition || isEvaluator
 
     const dualLabels = isEvaluator
         ? { top: { id: 'pass', color: '#22c55e', char: 'OK' }, bottom: { id: 'fail', color: '#ef4444', char: 'FAIL' } }
         : { top: { id: 'true', color: '#22c55e', char: 'T' }, bottom: { id: 'false', color: '#ef4444', char: 'F' } }
+
+    const routerRoutes = isRouter ? (data.routerRoutes || ['support', 'billing', 'general']) : []
 
     return (
         <div
@@ -162,7 +171,18 @@ export function FlowNode({ data, selected }) {
             )}
 
             {/* Output handles */}
-            {hasDualOut ? (
+            {isRouter ? (
+                routerRoutes.map((route, idx, arr) => (
+                    <div key={route}>
+                        <Handle type="source" position={Position.Right} id={route}
+                            className="fn-handle fn-handle-out"
+                            style={{ top: `${(idx + 1) * 100 / (arr.length + 1)}%` }} />
+                        <span className="fn-handle-label" style={{ top: `calc(${(idx + 1) * 100 / (arr.length + 1)}% - 4px)`, color: 'var(--fg2)' }}>
+                            {route}
+                        </span>
+                    </div>
+                ))
+            ) : hasDualOut ? (
                 <>
                     <Handle type="source" position={Position.Right} id={dualLabels.top.id}
                         className="fn-handle fn-handle-out fn-handle-true"

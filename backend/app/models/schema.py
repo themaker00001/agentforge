@@ -25,7 +25,9 @@ class NodeType(str, Enum):
     note         = "note"          # Visual sticky note (no execution)
     media_input  = "media_input"   # Upload image / audio / PDF into the pipeline
     graph_memory = "graph_memory"  # Persistent knowledge graph memory
-
+    semantic_router = "semantic_router" # LLM-based intent routing
+    self_correction = "self_correction" # Agent-Critic loop
+    react_agent  = "react_agent"   # Autonomous tool orchestrator
 
 class NodeData(BaseModel):
     nodeType:     NodeType   = NodeType.agent
@@ -41,6 +43,12 @@ class NodeData(BaseModel):
     streaming:    bool       = False
     toolName:     Optional[str] = None   # for tool nodes
     params:       Optional[dict[str, Any]] = None
+    # Semantic Router fields
+    routerRoutes: Optional[list[str]] = None
+    # Self-Correction fields
+    selfCorrectionAttempts: int = Field(default=3, ge=1, le=5)
+    # ReAct Agent fields
+    reactMaxSteps: int = Field(default=5, ge=1, le=10)
     # Knowledge node fields
     knowledgeText: Optional[str] = None   # inline context pasted directly in node
     knowledgeTopK: int = Field(default=3, ge=1, le=10)

@@ -30,7 +30,7 @@ from app.services import graph_memory as gm_svc
 from app.llm.registry import get_llm
 
 # Node types that incur LLM cost
-_LLM_NODE_TYPES = {NodeType.agent, NodeType.output, NodeType.debate, NodeType.evaluator, NodeType.graph_memory}
+_LLM_NODE_TYPES = {NodeType.agent, NodeType.output, NodeType.debate, NodeType.evaluator, NodeType.graph_memory, NodeType.semantic_router, NodeType.self_correction, NodeType.react_agent}
 
 # Sentinel used to mark a node whose branch was not taken
 _SKIPPED = "__SKIPPED__"
@@ -681,6 +681,127 @@ async def execute(
                 
                 result = "\n\n".join(res_parts)
                 yield _emit(_log(LogType.ok, f"  Graph memory ready: {_first_sentence(result)}", nid))
+
+            #  Semantic Router 
+            elif ntype == NodeType.semantic_router:
+                routes = node.data.routerRoutes or ["general"]
+                eff_model = node.data.model or model
+                llm = get_llm(eff_model, api_key=node.data.apiKey)
+                sys_msg = f"You are a semantic router. Analyze the user's input and select the single most appropriate category from this exact list: {', '.join(routes)}. Respond ONLY with the exact category name and nothing else."
+                msgs = [{"role": "system", "content": sys_msg}, {"role": "user", "content": context}]
+                yield _emit(_log(LogType.info, f"  Routing to one of: {', '.join(routes)}", nid))
+                resp = await llm.chat(msgs, temperature=0.0, max_tokens=20)
+                selected_route = resp.strip()
+                # Clean up response if model was wordy
+                for r in routes:
+                    if r.lower() in selected_route.lower():
+                        selected_route = r
+                        break
+                yield _emit(_log(LogType.info, f"  Routed to: {selected_route}", nid))
+                for edge in graph.edges:
+                    if edge.source == nid:
+                        handle = edge.sourceHandle
+                        if handle != selected_route:
+                            _mark_branch_skipped(edge.target, node_map, graph, skipped_nodes, node_outputs)
+                result = f"[Routed to: {selected_route}]\n\n{context}"
+
+            #  Self-Correction (Agent-Critic Loop) 
+            elif ntype == NodeType.self_correction:
+                eff_model = node.data.model or model
+                max_attempts = node.data.selfCorrectionAttempts or 3
+                yield _emit(_log(LogType.info, f"  Starting Self-Correction loop (max {max_attempts} attempts)", nid))
+                
+                agent_sys = _resolve_templates(node.data.systemPrompt or "You are a helpful assistant.", variables)
+                critic_sys = _resolve_templates(node.data.evaluatorRubric or "Review the answer. If it fully satisfies the request and is correct, respond with 'PASS'. If not, provide a critique explaining what needs to be fixed.", variables)
+                
+                llm = get_llm(eff_model, api_key=node.data.apiKey)
+                current_context = context
+                final_answer = ""
+                
+                for attempt in range(1, max_attempts + 1):
+                    yield _emit(_log(LogType.info, f"  Attempt {attempt}/{max_attempts}", nid))
+                    
+                    # 1. Generate Answer
+                    ans_msgs = [{"role": "system", "content": agent_sys}, {"role": "user", "content": current_context}]
+                    answer = await llm.chat(ans_msgs, temperature=node.data.temperature)
+                    
+                    # 2. Critique Answer
+                    crit_msgs = [
+                        {"role": "system", "content": critic_sys},
+                        {"role": "user", "content": f"User Input: {user_input}\n\nGenerated Answer: {answer}\n\nCritique this answer. If it passes, output 'PASS'. Otherwise, explain what is wrong."}
+                    ]
+                    critique = await llm.chat(crit_msgs, temperature=0.1)
+                    
+                    if "PASS" in critique.upper()[:10]:
+                        yield _emit(_log(LogType.ok, f"  Critic passed on attempt {attempt}", nid))
+                        final_answer = answer
+                        break
+                    else:
+                        yield _emit(_log(LogType.warn, f"  Critic failed: {critique[:80]}...", nid))
+                        current_context = f"{context}\n\nPrevious Answer: {answer}\n\nCritique: {critique}\n\nPlease revise your answer to address the critique."
+                        final_answer = answer # fallback if last attempt fails
+                result = final_answer
+
+            #  ReAct Agent (Autonomous Tool Orchestrator) 
+            elif ntype == NodeType.react_agent:
+                eff_model = node.data.model or model
+                max_steps = node.data.reactMaxSteps or 5
+                yield _emit(_log(LogType.info, f"  Starting ReAct Agent (max {max_steps} steps)", nid))
+                
+                available_tools = tool_svc.list_tools()
+                tool_descs = "\n".join([f"- {t['name']}: {t['description']} (params: {list(t['params'].keys())})" for t in available_tools])
+                
+                react_sys = (
+                    "You are an intelligent agent with access to tools.\n"
+                    f"Available tools:\n{tool_descs}\n\n"
+                    "You MUST respond in ONE of these two formats:\n"
+                    "Format 1 (To use a tool):\n"
+                    "THOUGHT: [your reasoning for using the tool]\n"
+                    "TOOL: {\"name\": \"tool_name\", \"params\": {\"key\": \"value\"}}\n\n"
+                    "Format 2 (To provide the final answer):\n"
+                    "THOUGHT: [your reasoning for the final answer]\n"
+                    "ANSWER: [your final answer to the user]\n"
+                )
+                
+                llm = get_llm(eff_model, api_key=node.data.apiKey)
+                history = [
+                    {"role": "system", "content": react_sys},
+                    {"role": "user", "content": f"Question: {user_input}\nContext: {context}"}
+                ]
+                
+                final_ans = ""
+                for step in range(1, max_steps + 1):
+                    yield _emit(_log(LogType.info, f"  Step {step}", nid))
+                    resp = await llm.chat(history, temperature=0.1)
+                    history.append({"role": "assistant", "content": resp})
+                    
+                    if "ANSWER:" in resp:
+                        final_ans = resp.split("ANSWER:")[-1].strip()
+                        yield _emit(_log(LogType.ok, f"  Final Answer reached", nid))
+                        break
+                    elif "TOOL:" in resp:
+                        try:
+                            tool_str = resp.split("TOOL:")[-1].strip()
+                            match = re.search(r'\{.*\}', tool_str, re.DOTALL)
+                            if match:
+                                tool_data = json.loads(match.group(0))
+                                t_name = tool_data.get("name")
+                                t_params = tool_data.get("params", {})
+                                yield _emit(_log(LogType.run, f"  Using tool: {t_name}", nid))
+                                tool_output = await tool_svc.run_tool(t_name, t_params)
+                                yield _emit(_log(LogType.ok, f"  Tool output: {str(tool_output)[:100]}...", nid))
+                                history.append({"role": "user", "content": f"OBSERVATION: {tool_output}"})
+                            else:
+                                history.append({"role": "user", "content": "ERROR: Could not parse TOOL JSON."})
+                                yield _emit(_log(LogType.warn, f"  JSON parse error", nid))
+                        except Exception as e:
+                            history.append({"role": "user", "content": f"ERROR running tool: {e}"})
+                            yield _emit(_log(LogType.err, f"  Tool error: {e}", nid))
+                    else:
+                        final_ans = resp
+                        break
+                
+                result = final_ans or f"[ReAct Agent stopped after {max_steps} steps without ANSWER tag]"
 
             #  Fallback 
             else:

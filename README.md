@@ -127,31 +127,19 @@ Switch models **per-node** — use a fast local model for search and a powerful 
 
 ## Example Workflows
 
-Here's a real end-to-end **Customer Support Agent** built in AgentForge — no code, just nodes.
+### 🚀 Getting Started
 
-### 🔧 Building the Flow
+Open AgentForge and you're greeted with a clean canvas. Click **Generate** to describe a workflow in plain English, or drag nodes from the library on the left — Agents, Evaluators, Flow Control, and Tools are all there out of the box. Quick-start templates get you running in seconds.
 
-Drop in agents, tools, and evaluators from the node library and wire them together on the canvas. This flow handles an incoming support ticket by enriching context, generating a reply, and self-evaluating quality before sending.
-
-![AgentForge workflow builder showing a customer support agent with Set Variables, API Call, Evaluator, Web Search, Merge, and Improve Reply nodes connected on the canvas](docs/screenshots/demo1.png)
+![AgentForge empty canvas showing the "Build AI Agents." welcome screen with quick-start templates for Customer Support, RAG Chatbot, and Code Assistant](docs/screenshots/demo1.png)
 
 ---
 
-### 🤖 Watching It Run
+### 🔧 Building a Flow
 
-Hit **Run** and watch the debug console stream live execution logs — node by node, token by token. See each step pass or fail with scores in real time.
+Here's a **Content Pipeline** built with 6 nodes and 5 edges — no code required. A `Topic / Brief` input feeds a `Content Writer` agent, which passes to a `Quality Gate` evaluator. If approved, the output is final; if not, a `Reviser` agent refines it automatically. The config panel on the right lets you tune the system prompt, temperature, and capabilities per node.
 
-![AgentForge debug console showing live execution with step-by-step logs, SSE streaming, and an evaluator scoring the agent reply at 8.0/10 — PASS](docs/screenshots/demo2.png)
-
----
-
-### ⚡ Self-Improving Loop
-
-When the **Evaluator** scores a reply below threshold (e.g. 4.0/10 — FAIL), the flow automatically routes back to the **Improve Reply** node — no manual intervention needed. The agent refines its own output until it meets your quality bar.
-
-![AgentForge full browser view showing the flow canvas with the Evaluator node catching a low-quality reply and routing it back through the Improve Reply node for self-correction](docs/screenshots/demo3.png)
-
-> 📁 *To display these screenshots: save your images to `docs/screenshots/demo1.png`, `demo2.png`, and `demo3.png` in the project root.*
+![AgentForge flow canvas showing a content pipeline: Topic/Brief → Content Writer → Quality Gate → Approved output or Reviser → Revised output, with the Content Writer config panel open on the right](docs/screenshots/demo2.png)
 
 ---
 

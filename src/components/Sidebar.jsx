@@ -9,7 +9,7 @@ const LIBRARY = [
         items: [
             { type: 'agent', label: 'AI Agent', iconType: 'agent', badge: 'NEW' },
             { type: 'agent', label: 'Chain Agent', iconType: 'chain' },
-            { type: 'agent', label: 'ReAct Agent', iconType: 'react' },
+            { type: 'react_agent', label: 'ReAct Agent', iconType: 'react', badge: 'NEW' },
         ],
     },
     {
@@ -17,11 +17,13 @@ const LIBRARY = [
         items: [
             { type: 'debate', label: 'Debate', iconType: 'debate', badge: 'NEW' },
             { type: 'evaluator', label: 'Evaluator', iconType: 'evaluator', badge: 'NEW' },
+            { type: 'self_correction', label: 'Self-Correct', iconType: 'loop', badge: 'NEW' },
         ],
     },
     {
         section: 'Flow Control',
         items: [
+            { type: 'semantic_router', label: 'Semantic Router', iconType: 'condition', badge: 'NEW' },
             { type: 'condition', label: 'Condition', iconType: 'condition', badge: 'NEW' },
             { type: 'set_variable', label: 'Set Variable', iconType: 'set_variable', badge: 'NEW' },
             { type: 'parallel', label: 'Parallel', iconType: 'parallel', badge: 'NEW' },

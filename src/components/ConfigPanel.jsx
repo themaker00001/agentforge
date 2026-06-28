@@ -152,11 +152,14 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
     const isNote        = data.nodeType === 'note'
     const isMediaInput  = data.nodeType === 'media_input'
     const isGraphMemory = data.nodeType === 'graph_memory'
+    const isSemanticRouter = data.nodeType === 'semantic_router'
+    const isSelfCorrection = data.nodeType === 'self_correction'
+    const isReactAgent  = data.nodeType === 'react_agent'
 
     // isLocal = nodes that don't show the standard LLM config block
     const isLocal = isShell || isFS || isPowerBI || isTool || isInput || isKnowledge
                  || isCondition || isSetVariable || isMerge || isLoop || isWebhook
-                 || isParallel || isNote || isMediaInput || isGraphMemory
+                 || isParallel || isNote || isMediaInput || isGraphMemory || isSemanticRouter
 
     const p = data.params || {}
     const toolName = data.toolName || ''
@@ -702,6 +705,87 @@ export default function ConfigPanel({ node, flow, model, sessionId = 'default', 
                                     const val = Number.parseInt(e.target.value)
                                     if (!Number.isNaN(val)) update('timeout', val)
                                 }}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ── Semantic Router config ── */}
+                {isSemanticRouter && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Uses an LLM to analyze the intent and strictly pick one category from your list to branch the workflow.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">Categories (one per line)</label>
+                            <textarea
+                                className="form-textarea" rows={4}
+                                placeholder="billing\nsupport\nsales\ngeneral"
+                                value={(data.routerRoutes || ['support', 'billing', 'general']).join('\n')}
+                                onChange={e => {
+                                    const lines = e.target.value.split('\n').map(l => l.trim()).filter(Boolean)
+                                    update('routerRoutes', lines)
+                                }}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-router-model`}>Model</label>
+                            <input
+                                id={`${node.id}-router-model`}
+                                className="form-input"
+                                list={`${node.id}-model-list`}
+                                value={data.model || 'ollama:llama3:8b'}
+                                onChange={e => update('model', e.target.value)}
+                                onKeyDown={stopKeys}
+                                placeholder="provider:model_name"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ── Self-Correction config ── */}
+                {isSelfCorrection && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Agent-Critic loop. The agent generates an answer, and the critic reviews it. If it fails, the agent is prompted to try again.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">Max Attempts: <strong>{data.selfCorrectionAttempts || 3}</strong></label>
+                            <input
+                                type="range" min="1" max="5" step="1"
+                                value={data.selfCorrectionAttempts || 3}
+                                onChange={e => update('selfCorrectionAttempts', parseInt(e.target.value))}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label" htmlFor={`${node.id}-critic-prompt`}>Critic Prompt / Rubric</label>
+                            <textarea
+                                id={`${node.id}-critic-prompt`}
+                                className="form-textarea" rows={4}
+                                placeholder="Review the answer. If it's correct and follows all rules, reply 'PASS'."
+                                value={data.evaluatorRubric || ''}
+                                onChange={e => update('evaluatorRubric', e.target.value)}
+                                onKeyDown={stopKeys}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ── ReAct Agent config ── */}
+                {isReactAgent && (
+                    <>
+                        <div className="cp-group" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Autonomous orchestrator. Thinks, picks a tool, observes the result, and repeats until a final answer is found.
+                        </div>
+                        <div className="cp-group">
+                            <label className="form-label">Max Steps: <strong>{data.reactMaxSteps || 5}</strong></label>
+                            <input
+                                type="range" min="1" max="10" step="1"
+                                value={data.reactMaxSteps || 5}
+                                onChange={e => update('reactMaxSteps', parseInt(e.target.value))}
                                 onKeyDown={stopKeys}
                             />
                         </div>

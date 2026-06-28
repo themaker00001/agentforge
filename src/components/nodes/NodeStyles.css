@@ -15,12 +15,15 @@
 .flow-node:hover {
   border-color: var(--fg2);
   background: var(--bg-inset);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .flow-node.selected {
   border-color: var(--node-color, var(--signal));
   background: color-mix(in srgb, var(--node-color, var(--signal)) 4%, var(--bg-inset));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--node-color, var(--signal)) 28%, transparent);
+  box-shadow: 
+    0 0 0 1px color-mix(in srgb, var(--node-color, var(--signal)) 28%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .flow-node.running {
@@ -201,10 +204,15 @@
   cursor: pointer;
   transition: border-color var(--transition);
 }
-.flow-node-note:hover { border-color: #4a4420; }
+.flow-node-note:hover { 
+  border-color: #4a4420; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
 .flow-node-note.selected {
   border-color: var(--signal);
-  box-shadow: 0 0 0 1px rgba(200,255,0,0.2);
+  box-shadow: 
+    0 0 0 1px rgba(200,255,0,0.2),
+    0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .note-text {
@@ -251,7 +259,12 @@
 .flow-node.style-terminal .fn-sub { color: #3a7a3a; }
 .flow-node.style-terminal .fn-kind { color: #3a7a3a; }
 .flow-node.style-terminal .fn-head { border-bottom-color: #1a2e1a; }
-.flow-node.style-terminal.selected { border-color: #7fff7f; box-shadow: 0 0 0 1px rgba(127,255,127,0.2); }
+.flow-node.style-terminal.selected { 
+  border-color: #7fff7f; 
+  box-shadow: 
+    0 0 0 1px rgba(127,255,127,0.2),
+    0 8px 24px rgba(0, 0, 0, 0.4); 
+}
 .flow-node.style-terminal.running { border-color: var(--green); }
 
 /* ── Pill style ── */

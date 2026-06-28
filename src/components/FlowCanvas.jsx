@@ -80,44 +80,44 @@ export default function FlowCanvas({
                 <span className="cr-stat">{edgesIn.length} EDGES</span>
             </div>
 
-            <ReactFlow
-                onInit={inst => { rfInstance.current = inst }}
-                nodes={nodesWithDelete}
-                edges={edgesIn}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onNodeClick={(_, node) => onNodeClick(node)}
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                nodeTypes={nodeTypes}
-                defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
-                fitView={!isEmpty}
-                fitViewOptions={{ padding: 0.25 }}
-                minZoom={0.2}
-                maxZoom={2.5}
-                proOptions={{ hideAttribution: true }}
-            >
-                {bgVariant && (
-                    <Background variant={bgVariant} gap={24} size={1} color="#2a2a2e" />
-                )}
-                <Controls className="rf-controls" showInteractive={false} />
+            <div className="rf-drop-zone" onDrop={onDrop} onDragOver={onDragOver}>
+                <ReactFlow
+                    onInit={inst => { rfInstance.current = inst }}
+                    nodes={nodesWithDelete}
+                    edges={edgesIn}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onNodeClick={(_, node) => onNodeClick(node)}
+                    nodeTypes={nodeTypes}
+                    defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+                    fitView={!isEmpty}
+                    fitViewOptions={{ padding: 0.25 }}
+                    minZoom={0.2}
+                    maxZoom={2.5}
+                    proOptions={{ hideAttribution: true }}
+                >
+                    {bgVariant && (
+                        <Background variant={bgVariant} gap={24} size={1} color="#2a2a2e" />
+                    )}
+                    <Controls className="rf-controls" showInteractive={false} />
 
-                {/* Toolbar — top right */}
-                <Panel position="top-right">
-                    <div className="canvas-toolbar">
-                        <button className="ctb-btn ctb-add" onClick={onShowTemplates}>
-                            <Plus size={11} strokeWidth={2} /> ADD NODE
-                            <span className="ctb-kbd">⌘K</span>
-                        </button>
-                        <span className="ctb-sep" />
-                        <button className="ctb-btn"><ZoomOut size={12} /></button>
-                        <button className="ctb-btn"><ZoomIn size={12} /></button>
-                        <span className="ctb-sep" />
-                        <button className="ctb-btn"><Maximize2 size={11} /> FIT</button>
-                    </div>
-                </Panel>
-            </ReactFlow>
+                    {/* Toolbar — top right */}
+                    <Panel position="top-right">
+                        <div className="canvas-toolbar">
+                            <button className="ctb-btn ctb-add" onClick={onShowTemplates}>
+                                <Plus size={11} strokeWidth={2} /> ADD NODE
+                                <span className="ctb-kbd">⌘K</span>
+                            </button>
+                            <span className="ctb-sep" />
+                            <button className="ctb-btn" onClick={() => rfInstance.current?.zoomOut()}><ZoomOut size={12} /></button>
+                            <button className="ctb-btn" onClick={() => rfInstance.current?.zoomIn()}><ZoomIn size={12} /></button>
+                            <span className="ctb-sep" />
+                            <button className="ctb-btn" onClick={() => rfInstance.current?.fitView()}><Maximize2 size={11} /> FIT</button>
+                        </div>
+                    </Panel>
+                </ReactFlow>
+            </div>
 
             {/* Canvas stats */}
             <div className="canvas-stats">
